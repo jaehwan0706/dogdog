@@ -1,0 +1,16 @@
+# frontend
+frontend/node_modules/
+frontend/ios/Pods/
+frontend/android/.gradle/
+frontend/android/app/build/
+
+# backend
+backend/.gradle/
+backend/build/
+backend/src/main/resources/application-local.yml
+
+# common
+*.log
+.env
+.idea/
+*.iml
