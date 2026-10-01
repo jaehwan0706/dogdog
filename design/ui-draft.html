@@ -1,0 +1,635 @@
+<title>댕산책 — UI 와이어프레임 초안</title>
+<style>
+  :root{
+    --canvas-1:#182720;
+    --canvas-2:#1f3127;
+    --bezel:#211d18;
+    --bezel-edge:#36302a;
+    --paper:#f6f1e2;
+    --paper-soft:#efe8d4;
+    --ink:#2a2a20;
+    --ink-soft:#6b6a5c;
+    --ink-faint:#9a9888;
+    --line:#ddd6bf;
+    --accent:#dd9a2e;
+    --accent-ink:#2a1c04;
+    --pine:#3c5a47;
+    --pine-soft:#e3ebe2;
+    --sky:#5c7f9a;
+    --sky-soft:#e4edf1;
+    --kakao:#fee500;
+    --header-ink:#f3efe0;
+    --header-sub:#b9c4ba;
+    --chip-bg:rgba(246,241,226,0.08);
+    --chip-line:rgba(246,241,226,0.18);
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(1100px 600px at 12% -10%, #253b2e 0%, transparent 60%),
+      linear-gradient(170deg, var(--canvas-1), var(--canvas-2) 60%, #152019 100%);
+    font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    color:var(--header-ink);
+    padding:56px 32px 96px;
+  }
+
+  .page{ max-width:1400px; margin:0 auto; }
+
+  .masthead{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    margin-bottom:12px;
+    max-width:720px;
+  }
+  .eyebrow{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--accent);
+  }
+  .masthead h1{
+    font-size:clamp(28px,4vw,40px);
+    line-height:1.15;
+    margin:0;
+    font-weight:800;
+    text-wrap:balance;
+    letter-spacing:-0.01em;
+  }
+  .masthead p{
+    margin:0;
+    font-size:15px;
+    line-height:1.6;
+    color:var(--header-sub);
+    max-width:60ch;
+  }
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+  .chip{
+    font-size:12px;
+    font-weight:600;
+    padding:6px 12px;
+    border-radius:99px;
+    background:var(--chip-bg);
+    border:1px solid var(--chip-line);
+    color:var(--header-sub);
+    letter-spacing:.01em;
+  }
+
+  .flow{
+    margin:40px 0 48px;
+    padding:18px 20px;
+    border:1px solid var(--chip-line);
+    border-radius:16px;
+    background:var(--chip-bg);
+    font-size:13px;
+    color:var(--header-sub);
+    line-height:1.9;
+    overflow-x:auto;
+  }
+  .flow b{ color:var(--header-ink); font-weight:700; }
+  .flow .arrow{ color:var(--accent); margin:0 6px; }
+
+  .gallery{
+    display:flex;
+    flex-wrap:wrap;
+    gap:44px 36px;
+    align-items:flex-start;
+  }
+
+  .slot{ width:300px; }
+  .slot-head{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .slot-num{
+    font-size:12px;
+    font-weight:800;
+    color:var(--accent);
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.04em;
+  }
+  .slot-name{ font-size:15px; font-weight:700; color:var(--header-ink); }
+  .slot-note{
+    margin:10px 2px 0;
+    font-size:12px;
+    line-height:1.6;
+    color:var(--header-sub);
+    opacity:.85;
+  }
+
+  .phone{
+    width:300px;
+    border-radius:38px;
+    background:linear-gradient(160deg,var(--bezel),#17140f);
+    border:1px solid var(--bezel-edge);
+    padding:12px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.6), 0 2px 0 rgba(255,255,255,0.03) inset;
+  }
+  .screen{
+    position:relative;
+    background:var(--paper);
+    border-radius:27px;
+    height:620px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    color:var(--ink);
+  }
+  .statusbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 22px 0;
+    font-size:12px;
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+    color:var(--ink);
+  }
+  .statusbar .dot-cluster{ display:flex; gap:3px; align-items:center; }
+  .statusbar .bar{ width:3px; background:var(--ink); border-radius:1px; }
+
+  .content{
+    flex:1;
+    min-height:0;
+    padding:18px 18px 0;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+
+  /* ---- shared pieces ---- */
+  .label-sm{
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+  }
+  .field{
+    border:1px solid var(--line);
+    background:var(--paper-soft);
+    border-radius:12px;
+    padding:14px 16px;
+    font-size:13.5px;
+    color:var(--ink-soft);
+  }
+  .btn{
+    border:none;
+    border-radius:13px;
+    padding:14px 16px;
+    font-size:14.5px;
+    font-weight:700;
+    text-align:center;
+    cursor:pointer;
+  }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); }
+  .btn-kakao{ background:var(--kakao); color:#2a2000; }
+  .btn-ghost{ background:#fff; color:var(--ink); border:1px solid var(--line); }
+  .divider{
+    display:flex; align-items:center; gap:10px;
+    color:var(--ink-faint); font-size:11px; font-weight:600;
+  }
+  .divider::before,.divider::after{ content:""; flex:1; height:1px; background:var(--line); }
+  .links-row{
+    display:flex; justify-content:center; gap:14px;
+    font-size:12px; color:var(--ink-faint); font-weight:600;
+  }
+
+  .logo{
+    text-align:center; padding:28px 0 6px;
+    font-size:24px; font-weight:800; letter-spacing:-.01em;
+  }
+  .logo span{ margin-right:6px; }
+
+  .select{
+    border:1px solid var(--line); background:var(--paper-soft);
+    border-radius:12px; padding:14px 16px; font-size:13.5px;
+    display:flex; justify-content:space-between; color:var(--ink);
+  }
+  .select .chev{ color:var(--ink-faint); }
+
+  .card{
+    border-radius:16px; background:var(--paper-soft);
+    border:1px solid var(--line);
+    padding:14px; display:flex; align-items:center; gap:12px;
+  }
+  .avatar{
+    width:44px; height:44px; border-radius:50%;
+    background:linear-gradient(160deg,#e7c99b,#d9a86a);
+    flex-shrink:0;
+  }
+  .card .name{ font-size:13.5px; font-weight:700; }
+  .card .sub{ font-size:11.5px; color:var(--ink-faint); margin-top:2px; }
+
+  .stat-line{
+    font-size:13px; color:var(--ink-soft); font-weight:600;
+  }
+  .stat-line b{ color:var(--ink); font-variant-numeric:tabular-nums; }
+
+  .weather{
+    font-size:12.5px; font-weight:600; color:var(--ink-soft);
+    display:flex; align-items:center; gap:6px;
+  }
+
+  .spacer{ flex:1; }
+
+  /* ---- tab bar ---- */
+  .tabbar{
+    display:flex;
+    border-top:1px solid var(--line);
+    background:#fff;
+    padding:10px 6px 14px;
+  }
+  .tab{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+    font-size:10px; font-weight:700; color:var(--ink-faint);
+  }
+  .tab svg{ width:20px; height:20px; stroke:var(--ink-faint); fill:none; stroke-width:1.8; }
+  .tab.active{ color:var(--pine); }
+  .tab.active svg{ stroke:var(--pine); }
+
+  /* ---- walk / map screens ---- */
+  .map-area{
+    flex:1; border-radius:16px; position:relative; overflow:hidden;
+    background:
+      linear-gradient(var(--sky-soft),var(--sky-soft)),
+      repeating-linear-gradient(0deg, rgba(92,127,154,.12) 0 1px, transparent 1px 28px),
+      repeating-linear-gradient(90deg, rgba(92,127,154,.12) 0 1px, transparent 1px 28px);
+  }
+  .map-area svg{ position:absolute; inset:0; width:100%; height:100%; }
+  .pin{ position:absolute; width:10px; height:10px; border-radius:50%; background:var(--accent); border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+
+  .stat-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:10px;
+    text-align:center; padding:16px 0;
+  }
+  .stat-grid .num{ font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .stat-grid .cap{ font-size:10.5px; color:var(--ink-faint); margin-top:4px; font-weight:600; }
+
+  .pill-row{ display:flex; gap:8px; }
+  .pill{
+    font-size:11.5px; font-weight:700; padding:7px 13px; border-radius:99px;
+    border:1px solid var(--line); color:var(--ink-soft);
+  }
+  .pill.active{ background:var(--pine); border-color:var(--pine); color:#fff; }
+
+  .action-row{ display:flex; gap:8px; }
+  .action-row .btn{ flex:1; font-size:12px; padding:12px 6px; }
+
+  .course-card{
+    border:1px solid var(--line); border-radius:16px; padding:14px;
+    display:flex; flex-direction:column; gap:4px; background:#fff;
+  }
+  .course-card .t{ font-size:14px; font-weight:700; }
+  .course-card .d{ font-size:11.5px; color:var(--ink-faint); font-weight:600; }
+  .course-card .tag{
+    align-self:flex-start; margin-top:6px; font-size:10.5px; font-weight:700;
+    padding:3px 9px; border-radius:99px; background:var(--pine-soft); color:var(--pine);
+  }
+
+  .post-item{
+    display:flex; flex-direction:column; gap:4px;
+    padding:12px 2px; border-bottom:1px solid var(--line);
+  }
+  .post-item .cat{ font-size:10.5px; font-weight:700; color:var(--pine); }
+  .post-item .t{ font-size:13.5px; font-weight:700; }
+  .post-item .meta{ font-size:11px; color:var(--ink-faint); font-weight:600; }
+
+  .write-btn{
+    align-self:flex-end; font-size:12px; font-weight:700;
+    background:var(--pine); color:#fff; border-radius:99px; padding:8px 14px;
+  }
+
+  .post-detail .title{ font-size:15px; font-weight:800; }
+  .post-detail .byline{ font-size:11px; color:var(--ink-faint); font-weight:600; margin-top:4px; }
+  .post-detail .body-text{ font-size:12.5px; line-height:1.7; color:var(--ink-soft); margin-top:10px; }
+  .comment{ font-size:11.5px; color:var(--ink-soft); padding:8px 0; border-top:1px solid var(--line); }
+  .comment b{ color:var(--ink); }
+
+  .mypage-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 2px; border-bottom:1px solid var(--line);
+    font-size:13.5px; font-weight:600;
+  }
+  .mypage-row .go{ color:var(--ink-faint); }
+  .profile-head{ display:flex; align-items:center; gap:12px; padding:6px 0 4px; }
+  .profile-head .avatar{ width:54px; height:54px; }
+  .profile-head .nick{ font-size:16px; font-weight:800; }
+
+  .add-pill{
+    font-size:11px; font-weight:700; color:var(--pine); border:1px dashed var(--pine);
+    border-radius:99px; padding:4px 10px;
+  }
+
+  @media (max-width:720px){
+    body{ padding:40px 18px 72px; }
+    .gallery{ justify-content:center; }
+  }
+</style>
+
+<div class="page">
+
+  <div class="masthead">
+    <div class="eyebrow">Dangsanchaek · Mobile Wireframe Draft</div>
+    <h1>댕산책 UI 초안</h1>
+    <p>Notion 화면설계서(8번 문서)의 흐름을 기준으로 11개 화면을 실제 콘텐츠로 채운 와이어프레임입니다. 레이아웃·카피 검토용 초안이며, 최종 비주얼은 Figma에서 다듬습니다.</p>
+    <div class="chips">
+      <span class="chip">React Native</span>
+      <span class="chip">iOS · Android</span>
+      <span class="chip">Draft v0.1</span>
+      <span class="chip">2026-10-01</span>
+    </div>
+  </div>
+
+  <div class="flow">
+    <b>앱 실행</b><span class="arrow">→</span><b>로그인</b><span class="arrow">→</span><b>온보딩(반려견 최초 등록)</b><span class="arrow">→</span><b>홈</b><span class="arrow">→</span><b>산책 시작</b><span class="arrow">→</span><b>산책 중</b><span class="arrow">→</span><b>산책 종료</b><span class="arrow">→</span><b>홈</b>
+    &nbsp;&nbsp;|&nbsp;&nbsp; 홈 하단 탭: <b>지도</b> · <b>코스추천</b> · <b>커뮤니티</b>(목록→상세/글쓰기) · <b>마이페이지</b>(→ <b>반려견 프로필 수정</b>)
+  </div>
+
+  <div class="gallery">
+
+    <!-- 1. 로그인 -->
+    <div class="slot">
+      <div class="slot-head"><span class="slot-num">01</span><span class="slot-name">로그인</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dot-cluster"><span class="bar" style="height:7px"></span><span class="bar" style="height:9px"></span><span class="bar" style="height:11px"></span></span></div>
+        <div class="content">
+          <div class="logo"><span>🐾</span>댕산책</div>
+          <div class="spacer" style="flex:0 0 8px"></div>
+          <div class="field">이메일 입력</div>
+          <div class="field">비밀번호 입력</div>
+          <div class="btn btn-primary">로그인</div>
+          <div class="divider">또는</div>
+          <div class="btn btn-kakao">카카오로 시작하기</div>
+          <div class="btn btn-ghost">구글로 계속하기</div>
+          <div class="links-row"><span>회원가입</span><span>비밀번호 찾기</span></div>
+        </div>
+      </div></div>
+      <p class="slot-note">이메일/소셜 로그인. API: POST /auth/login, /auth/oauth/{provider}</p>
+    </div>
+
+    <!-- 2. 온보딩 -->
+    <div class="slot">
+      <div class="slot-head"><span class="slot-num">02</span><span class="slot-name">온보딩 · 반려견 등록</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dot-cluster"><span class="bar" style="height:7px"></span><span class="bar" style="height:9px"></span><span class="bar" style="height:11px"></span></span></div>
+        <div class="content">
+          <div style="padding-top:18px;font-size:16px;font-weight:800;line-height:1.5;text-wrap:balance;">환영합니다!<br>반려견을 소개해주세요</div>
+          <div class="label-sm" style="margin-top:4px;">반려견 이름</div>
+          <div class="field">대덕이</div>
+          <div class="label-sm">견종</div>
+          <div class="select"><span>골든 리트리버</span><span class="chev">▾</span></div>
+          <div class="label-sm">나이 · 체중</div>
+          <div style="display:flex;gap:8px;">
+            <div class="field" style="flex:1;">3세</div>
+            <div class="field" style="flex:1;">24kg</div>
+          </div>
+          <div class="spacer"></div>
+          <div class="btn btn-primary" style="margin-bottom:18px;">완료</div>
+        </div>
+      </div></div>
+      <p class="slot-note">최초 로그인 시 1회. API: POST /dogs</p>
+    </div>
+
+    <!-- 3. 홈 -->
+    <div class="slot">
+      <div class="slot-head"><span class="slot-num">03</span><span class="slot-name">홈</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dot-cluster"><span class="bar" style="height:7px"></span><span class="bar" style="height:9px"></span><span class="bar" style="height:11px"></span></span></div>
+        <div class="content">
+          <div class="weather">☀️ 오늘 날씨: 맑음 · 미세먼지 좋음</div>
+          <div class="btn btn-primary" style="font-size:15.5px;padding:16px;">🐾 산책 시작하기</div>
+          <div class="card">
+            <div class="avatar"></div>
+            <div><div class="name">나의 반려견 · 대덕이</div><div class="sub">골든 리트리버 · 3세</div></div>
+          </div>
+          <div class="stat-line">최근 산책 요약 · <b>2.3km</b> · <b>115kcal</b></div>
+          <div class="spacer"></div>
+        </div>
+        <div class="tabbar">
+          <div class="tab active"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>홈</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M9 4l6 2 5-2v15l-5 2-6-2-5 2V6z"/><path d="M9 4v15M15 6v15"/></svg>지도</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/></svg>코스</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>커뮤니티</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>마이</div>
+        </div>
+      </div></div>
+      <p class="slot-note">GET /walks?userId=</p>
+    </div>
+
+    <!-- 4. 산책 중 -->
+    <div class="slot">
+      <div class="slot-head"><span class="slot-num">04</span><span class="slot-name">산책 중</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dot-cluster"><span class="bar" style="height:7px"></span><span class="bar" style="height:9px"></span><span class="bar" style="height:11px"></span></span></div>
+        <div class="content">
+          <div class="map-area">
+            <svg viewBox="0 0 260 300" preserveAspectRatio="none"><path d="M30 260 C 60 200, 40 160, 90 140 S 180 120, 160 70 S 220 40, 230 20" fill="none" stroke="#dd9a2e" stroke-width="4" stroke-linecap="round"/></svg>
+            <div class="pin" style="left:26px;top:252px;"></div>
+            <div class="pin" style="left:222px;top:16px;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:2px 2px 4px;">
+            <span class="stat-line">거리 <b>0.0km</b></span>
+            <span class="stat-line">시간 <b>00:00</b></span>
+          </div>
+          <div class="action-row" style="padding-bottom:16px;">
+            <div class="btn btn-ghost">📷 사진</div>
+            <div class="btn btn-ghost">⏸ 일시정지</div>
+            <div class="btn btn-primary">■ 종료</div>
+          </div>
+        </div>
+      </div></div>
+      <p class="slot-note">POST /walks/start, /walks/{id}/points, /photo-pins</p>
+    </div>
+
+    <!-- 5. 산책 종료 -->
+    <div class="slot">
+      <div class="slot-head"><span class="slot-num">05</span><span class="slot-name">산책 종료 요약</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dot-cluster"><span class="bar" style="height:7px"></span><span class="bar" style="height:9px"></span><span class="bar" style="height:11px"></span></span></div>
+        <div class="content" style="align-items:center;text-align:center;padding-top:48px;">
+          <div style="font-size:30px;">🎉</div>
+          <div style="font-size:17px;font-weight:800;">오늘의 산책 완료!</div>
+          <div class="stat-grid" style="width:100%;">
+            <div><div class="num">2.3km</div><div class="cap">총 거리</div></div>
+            <div><div class="num">26:00</div><div class="cap">총 시간</div></div>
+            <div><div class="num">115</div><div class="cap">칼로리(kcal)</div></div>
+          </div>
+          <div class="spacer"></div>
+          <div class="btn btn-primary" style="width:100%;margin-bottom:18px;">저장하고 홈으로</div>
+        </div>
+      </div></div>
+      <p class="slot-note">PATCH /walks/{id}/end</p>
+    </div>
+
+    <!-- 6. 지도 탭 -->
+    <div class="slot">
+      <div class="slot-head"><span class="slot-num">06</span><span class="slot-name">지도 · 사진핀/친화시설</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dot-cluster"><span class="bar" style="height:7px"></span><span class="bar" style="height:9px"></span><span class="bar" style="height:11px"></span></span></div>
+        <div class="content">
+          <div class="pill-row">
+            <div class="pill active">전체</div>
+            <div class="pill">사진핀</div>
+            <div class="pill">친화시설</div>
+          </div>
+          <div class="map-area">
+            <div class="pin" style="left:40px;top:60px;"></div>
+            <div class="pin" style="left:120px;top:100px;"></div>
+            <div class="pin" style="left:90px;top:180px;"></div>
+            <div class="pin" style="left:190px;top:210px;"></div>
+            <div class="pin" style="left:60px;top:240px;"></div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>홈</div>
+          <div class="tab active"><svg viewBox="0 0 24 24"><path d="M9 4l6 2 5-2v15l-5 2-6-2-5 2V6z"/><path d="M9 4v15M15 6v15"/></svg>지도</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/></svg>코스</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>커뮤니티</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>마이</div>
+        </div>
+      </div></div>
+      <p class="slot-note">GET /photo-pins, /facilities (비공개 사진핀은 본인만 조회)</p>
+    </div>
+
+    <!-- 7. 코스 추천 -->
+    <div class="slot">
+      <div class="slot-head"><span class="slot-num">07</span><span class="slot-name">코스 추천</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dot-cluster"><span class="bar" style="height:7px"></span><span class="bar" style="height:9px"></span><span class="bar" style="height:11px"></span></span></div>
+        <div class="content">
+          <div style="font-size:16px;font-weight:800;padding-top:4px;">맞춤 코스 추천</div>
+          <div class="course-card">
+            <div class="t">동네 한바퀴</div>
+            <div class="d">1.8km · 약 30분</div>
+            <div class="tag">오늘 추천</div>
+          </div>
+          <div class="course-card">
+            <div class="t">공원 산책</div>
+            <div class="d">2.5km · 약 42분</div>
+          </div>
+          <div class="course-card">
+            <div class="t">강변 코스</div>
+            <div class="d">3.1km · 약 50분</div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>홈</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M9 4l6 2 5-2v15l-5 2-6-2-5 2V6z"/><path d="M9 4v15M15 6v15"/></svg>지도</div>
+          <div class="tab active"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/></svg>코스</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>커뮤니티</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>마이</div>
+        </div>
+      </div></div>
+      <p class="slot-note">GET /courses/recommend?userId= (1차 규칙 기반 → AI 고도화)</p>
+    </div>
+
+    <!-- 8. 커뮤니티 목록 -->
+    <div class="slot">
+      <div class="slot-head"><span class="slot-num">08</span><span class="slot-name">커뮤니티 목록</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dot-cluster"><span class="bar" style="height:7px"></span><span class="bar" style="height:9px"></span><span class="bar" style="height:11px"></span></span></div>
+        <div class="content">
+          <div class="write-btn">✏️ 글쓰기</div>
+          <div class="post-item"><div class="cat">산책친구</div><div class="t">주말 아침 한강 같이 걸으실 분</div><div class="meta">좋아요 12 · 댓글 4</div></div>
+          <div class="post-item"><div class="cat">케어품앗이</div><div class="t">월요일 오전 2시간만 봐주실 분 있나요</div><div class="meta">좋아요 5 · 댓글 9</div></div>
+          <div class="post-item"><div class="cat">자유</div><div class="t">대덕이 첫 수영 성공 후기 🏊</div><div class="meta">좋아요 31 · 댓글 7</div></div>
+          <div class="post-item"><div class="cat">정보</div><div class="t">근처 24시 동물병원 리스트 공유</div><div class="meta">좋아요 18 · 댓글 2</div></div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>홈</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M9 4l6 2 5-2v15l-5 2-6-2-5 2V6z"/><path d="M9 4v15M15 6v15"/></svg>지도</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/></svg>코스</div>
+          <div class="tab active"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>커뮤니티</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>마이</div>
+        </div>
+      </div></div>
+      <p class="slot-note">GET /posts, POST /posts</p>
+    </div>
+
+    <!-- 9. 커뮤니티 상세 -->
+    <div class="slot">
+      <div class="slot-head"><span class="slot-num">09</span><span class="slot-name">커뮤니티 상세</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dot-cluster"><span class="bar" style="height:7px"></span><span class="bar" style="height:9px"></span><span class="bar" style="height:11px"></span></span></div>
+        <div class="content post-detail">
+          <div class="cat" style="color:var(--pine);font-size:11px;font-weight:700;">자유</div>
+          <div class="title">대덕이 첫 수영 성공 후기 🏊</div>
+          <div class="byline">대덕이보호자 · 2시간 전</div>
+          <div class="body-text">오늘 처음으로 호수공원 반려견 수영장에 다녀왔어요. 처음엔 무서워하더니 15분 만에 신나게 헤엄치기 시작했습니다. 혹시 수영 처음 도전하는 분들 팁 있으면 댓글로 알려주세요!</div>
+          <div class="spacer"></div>
+          <div class="comment"><b>골든맘</b> 저희 애도 다음 주에 도전해보려구요 👍</div>
+          <div class="comment"><b>산책왕</b> 구명조끼 추천템 있을까요?</div>
+        </div>
+      </div></div>
+      <p class="slot-note">GET /posts/{id}, POST /posts/{id}/comments, /like</p>
+    </div>
+
+    <!-- 10. 마이페이지 -->
+    <div class="slot">
+      <div class="slot-head"><span class="slot-num">10</span><span class="slot-name">마이페이지</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dot-cluster"><span class="bar" style="height:7px"></span><span class="bar" style="height:9px"></span><span class="bar" style="height:11px"></span></span></div>
+        <div class="content">
+          <div class="profile-head">
+            <div class="avatar"></div>
+            <div><div class="nick">대덕이보호자</div><div class="sub">가입일 2026.03</div></div>
+          </div>
+          <div class="mypage-row" style="cursor:pointer;"><span>반려견 · 대덕이 →</span><span class="add-pill">+ 추가</span></div>
+          <div class="mypage-row"><span>내 산책 기록</span><span class="go">›</span></div>
+          <div class="mypage-row"><span>내가 쓴 글</span><span class="go">›</span></div>
+          <div class="mypage-row" style="border-bottom:none;"><span>설정</span><span class="go">›</span></div>
+          <div class="spacer"></div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>홈</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M9 4l6 2 5-2v15l-5 2-6-2-5 2V6z"/><path d="M9 4v15M15 6v15"/></svg>지도</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/></svg>코스</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>커뮤니티</div>
+          <div class="tab active"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>마이</div>
+        </div>
+      </div></div>
+      <p class="slot-note">GET /users/me, /users/me/walks, /users/me/posts</p>
+    </div>
+
+    <!-- 11. 반려견 프로필 등록/수정 -->
+    <div class="slot">
+      <div class="slot-head"><span class="slot-num">11</span><span class="slot-name">반려견 프로필 등록/수정</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dot-cluster"><span class="bar" style="height:7px"></span><span class="bar" style="height:9px"></span><span class="bar" style="height:11px"></span></span></div>
+        <div class="content">
+          <div style="font-size:16px;font-weight:800;padding-top:4px;">반려견 프로필</div>
+          <div style="display:flex;justify-content:center;padding:6px 0 2px;">
+            <div style="position:relative;">
+              <div class="avatar" style="width:72px;height:72px;"></div>
+              <div style="position:absolute;right:-4px;bottom:-4px;width:24px;height:24px;border-radius:50%;background:var(--pine);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;">📷</div>
+            </div>
+          </div>
+          <div class="label-sm">반려견 이름</div>
+          <div class="field">대덕이</div>
+          <div class="label-sm">견종</div>
+          <div class="select"><span>골든 리트리버</span><span class="chev">▾</span></div>
+          <div class="label-sm">나이 · 체중</div>
+          <div style="display:flex;gap:8px;">
+            <div class="field" style="flex:1;">3세</div>
+            <div class="field" style="flex:1;">24kg</div>
+          </div>
+          <div class="spacer"></div>
+          <div style="display:flex;gap:8px;margin-bottom:18px;">
+            <div class="btn btn-ghost" style="flex:1;color:#b23b3b;border-color:#e7c9c9;">반려견 삭제</div>
+            <div class="btn btn-primary" style="flex:1;">저장</div>
+          </div>
+        </div>
+      </div></div>
+      <p class="slot-note">마이페이지 → "+ 추가" / 기존 반려견 카드 탭에서 진입. POST /dogs, PATCH /dogs/{id}</p>
+    </div>
+
+  </div>
+</div>
