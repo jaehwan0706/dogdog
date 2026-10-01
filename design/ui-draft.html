@@ -328,14 +328,13 @@
     border-radius:99px; padding:4px 10px;
   }
 
-  .shop-banner{
-    display:flex; align-items:center; justify-content:space-between;
-    background:linear-gradient(135deg,#2f4a3c,#3c5a47);
-    color:#f3efe0; border-radius:16px; padding:14px 16px;
+  .fab{
+    position:absolute; right:16px; bottom:88px; width:52px; height:52px;
+    border-radius:50%; background:linear-gradient(135deg,#2f4a3c,#3c5a47);
+    color:#f3efe0; display:flex; align-items:center; justify-content:center;
+    font-size:21px; box-shadow:0 10px 20px -6px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.06) inset;
+    z-index:5;
   }
-  .shop-banner .t{ font-size:13.5px; font-weight:700; }
-  .shop-banner .d{ font-size:11px; color:#cdd8cf; margin-top:3px; }
-  .shop-banner .go{ font-size:18px; color:#e8d9a8; }
 
   .product-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .product-card{
@@ -385,7 +384,7 @@
   <div class="flow">
     <b>앱 실행</b><span class="arrow">→</span><b>로그인</b><span class="arrow">→</span><b>온보딩(반려견 최초 등록)</b><span class="arrow">→</span><b>홈</b><span class="arrow">→</span><b>산책 시작</b><span class="arrow">→</span><b>산책 중</b><span class="arrow">→</span><b>산책 종료</b><span class="arrow">→</span><b>홈</b>
     &nbsp;&nbsp;|&nbsp;&nbsp; 홈 하단 탭: <b>지도</b> · <b>코스추천</b> · <b>커뮤니티</b>(목록→상세/글쓰기) · <b>마이페이지</b>(→ <b>반려견 프로필 수정</b>)
-    &nbsp;&nbsp;|&nbsp;&nbsp; 홈 배너: <b>마켓 홈</b>→<b>상품 상세</b>→<b>장바구니·결제</b>
+    &nbsp;&nbsp;|&nbsp;&nbsp; 주요 화면 우측 하단 <b>🛒 FAB</b>: <b>마켓 홈</b>→<b>상품 상세</b>→<b>장바구니·결제</b>
   </div>
 
   <div class="gallery">
@@ -446,10 +445,6 @@
             <div><div class="name">나의 반려견 · 대덕이</div><div class="sub">골든 리트리버 · 3세</div></div>
           </div>
           <div class="stat-line">최근 산책 요약 · <b>2.3km</b> · <b>115kcal</b></div>
-          <div class="shop-banner">
-            <div><div class="t">🛒 애완용품 마켓</div><div class="d">대덕이 취향 저격 사료·간식 구경하기</div></div>
-            <span class="go">›</span>
-          </div>
           <div class="spacer"></div>
         </div>
         <div class="tabbar">
@@ -459,8 +454,9 @@
           <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>커뮤니티</div>
           <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>마이</div>
         </div>
+        <div class="fab" title="애완용품 마켓">🛒</div>
       </div></div>
-      <p class="slot-note">GET /walks?userId=</p>
+      <p class="slot-note">GET /walks?userId= · 우측 하단 FAB → 마켓 진입</p>
     </div>
 
     <!-- 4. 산책 중 -->
@@ -534,8 +530,9 @@
           <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>커뮤니티</div>
           <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>마이</div>
         </div>
+        <div class="fab" title="애완용품 마켓">🛒</div>
       </div></div>
-      <p class="slot-note">GET /photo-pins, /facilities (비공개 사진핀은 본인만 조회)</p>
+      <p class="slot-note">GET /photo-pins, /facilities (비공개 사진핀은 본인만 조회) · 우측 하단 FAB → 마켓 진입</p>
     </div>
 
     <!-- 7. 코스 추천 -->
@@ -566,8 +563,9 @@
           <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>커뮤니티</div>
           <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>마이</div>
         </div>
+        <div class="fab" title="애완용품 마켓">🛒</div>
       </div></div>
-      <p class="slot-note">GET /courses/recommend?userId= (1차 규칙 기반 → AI 고도화)</p>
+      <p class="slot-note">GET /courses/recommend?userId= (1차 규칙 기반 → AI 고도화) · 우측 하단 FAB → 마켓 진입</p>
     </div>
 
     <!-- 8. 커뮤니티 목록 -->
@@ -589,8 +587,9 @@
           <div class="tab active"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>커뮤니티</div>
           <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>마이</div>
         </div>
+        <div class="fab" title="애완용품 마켓">🛒</div>
       </div></div>
-      <p class="slot-note">GET /posts, POST /posts</p>
+      <p class="slot-note">GET /posts, POST /posts · 우측 하단 FAB → 마켓 진입</p>
     </div>
 
     <!-- 9. 커뮤니티 상세 -->
@@ -634,8 +633,9 @@
           <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>커뮤니티</div>
           <div class="tab active"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>마이</div>
         </div>
+        <div class="fab" title="애완용품 마켓">🛒</div>
       </div></div>
-      <p class="slot-note">GET /users/me, /users/me/walks, /users/me/posts</p>
+      <p class="slot-note">GET /users/me, /users/me/walks, /users/me/posts · 우측 하단 FAB → 마켓 진입</p>
     </div>
 
     <!-- 11. 반려견 프로필 등록/수정 -->
