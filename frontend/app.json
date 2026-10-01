@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "댕산책",
+    "slug": "dangsanchaek",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "expo-status-bar"
+    ]
+  }
+}
