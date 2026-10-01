@@ -328,6 +328,40 @@
     border-radius:99px; padding:4px 10px;
   }
 
+  .shop-banner{
+    display:flex; align-items:center; justify-content:space-between;
+    background:linear-gradient(135deg,#2f4a3c,#3c5a47);
+    color:#f3efe0; border-radius:16px; padding:14px 16px;
+  }
+  .shop-banner .t{ font-size:13.5px; font-weight:700; }
+  .shop-banner .d{ font-size:11px; color:#cdd8cf; margin-top:3px; }
+  .shop-banner .go{ font-size:18px; color:#e8d9a8; }
+
+  .product-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .product-card{
+    border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#fff;
+  }
+  .product-card .thumb{ height:84px; background:linear-gradient(160deg,#e9ddb9,#d8c68e); }
+  .product-card .body{ padding:10px; }
+  .product-card .name{ font-size:12px; font-weight:700; line-height:1.4; }
+  .product-card .price{ font-size:12.5px; font-weight:800; margin-top:4px; }
+  .cat-tabs{ display:flex; gap:14px; font-size:12px; font-weight:700; color:var(--ink-faint); }
+  .cat-tabs .on{ color:var(--ink); border-bottom:2px solid var(--pine); padding-bottom:6px; }
+
+  .product-hero{ height:180px; border-radius:16px; background:linear-gradient(160deg,#e9ddb9,#d8c68e); }
+  .price-row{ display:flex; align-items:baseline; gap:8px; }
+  .price-row .now{ font-size:19px; font-weight:800; }
+  .price-row .was{ font-size:12px; color:var(--ink-faint); text-decoration:line-through; }
+
+  .cart-item{ display:flex; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); }
+  .cart-item .thumb{ width:48px; height:48px; border-radius:10px; background:linear-gradient(160deg,#e9ddb9,#d8c68e); flex-shrink:0; }
+  .cart-item .name{ font-size:12.5px; font-weight:700; }
+  .cart-item .price{ font-size:11.5px; color:var(--ink-faint); margin-top:2px; }
+  .qty{ display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; }
+  .qty span{ width:18px; text-align:center; }
+  .total-row{ display:flex; justify-content:space-between; font-size:13.5px; font-weight:700; padding-top:4px; }
+  .total-row b{ font-variant-numeric:tabular-nums; }
+
   @media (max-width:720px){
     body{ padding:40px 18px 72px; }
     .gallery{ justify-content:center; }
@@ -339,7 +373,7 @@
   <div class="masthead">
     <div class="eyebrow">Dangsanchaek · Mobile Wireframe Draft</div>
     <h1>댕산책 UI 초안</h1>
-    <p>Notion 화면설계서(8번 문서)의 흐름을 기준으로 11개 화면을 실제 콘텐츠로 채운 와이어프레임입니다. 레이아웃·카피 검토용 초안이며, 최종 비주얼은 Figma에서 다듬습니다.</p>
+    <p>Notion 화면설계서(8번 문서)의 흐름을 기준으로 14개 화면을 실제 콘텐츠로 채운 와이어프레임입니다. 레이아웃·카피 검토용 초안이며, 최종 비주얼은 Figma에서 다듬습니다.</p>
     <div class="chips">
       <span class="chip">React Native</span>
       <span class="chip">iOS · Android</span>
@@ -351,6 +385,7 @@
   <div class="flow">
     <b>앱 실행</b><span class="arrow">→</span><b>로그인</b><span class="arrow">→</span><b>온보딩(반려견 최초 등록)</b><span class="arrow">→</span><b>홈</b><span class="arrow">→</span><b>산책 시작</b><span class="arrow">→</span><b>산책 중</b><span class="arrow">→</span><b>산책 종료</b><span class="arrow">→</span><b>홈</b>
     &nbsp;&nbsp;|&nbsp;&nbsp; 홈 하단 탭: <b>지도</b> · <b>코스추천</b> · <b>커뮤니티</b>(목록→상세/글쓰기) · <b>마이페이지</b>(→ <b>반려견 프로필 수정</b>)
+    &nbsp;&nbsp;|&nbsp;&nbsp; 홈 배너: <b>마켓 홈</b>→<b>상품 상세</b>→<b>장바구니·결제</b>
   </div>
 
   <div class="gallery">
@@ -411,6 +446,10 @@
             <div><div class="name">나의 반려견 · 대덕이</div><div class="sub">골든 리트리버 · 3세</div></div>
           </div>
           <div class="stat-line">최근 산책 요약 · <b>2.3km</b> · <b>115kcal</b></div>
+          <div class="shop-banner">
+            <div><div class="t">🛒 애완용품 마켓</div><div class="d">대덕이 취향 저격 사료·간식 구경하기</div></div>
+            <span class="go">›</span>
+          </div>
           <div class="spacer"></div>
         </div>
         <div class="tabbar">
@@ -629,6 +668,58 @@
         </div>
       </div></div>
       <p class="slot-note">마이페이지 → "+ 추가" / 기존 반려견 카드 탭에서 진입. POST /dogs, PATCH /dogs/{id}</p>
+    </div>
+
+    <!-- 12. 마켓 홈 -->
+    <div class="slot">
+      <div class="slot-head"><span class="slot-num">12</span><span class="slot-name">애완용품 마켓 홈</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dot-cluster"><span class="bar" style="height:7px"></span><span class="bar" style="height:9px"></span><span class="bar" style="height:11px"></span></span></div>
+        <div class="content">
+          <div class="cat-tabs"><span class="on">전체</span><span>사료</span><span>간식</span><span>장난감</span><span>용품</span></div>
+          <div class="product-grid">
+            <div class="product-card"><div class="thumb"></div><div class="body"><div class="name">자연원 그레인프리 사료 2kg</div><div class="price">32,000원</div></div></div>
+            <div class="product-card"><div class="thumb"></div><div class="body"><div class="name">연어 트릿 스틱 10p</div><div class="price">12,900원</div></div></div>
+            <div class="product-card"><div class="thumb"></div><div class="body"><div class="name">노즈워크 간식 장난감</div><div class="price">18,500원</div></div></div>
+            <div class="product-card"><div class="thumb"></div><div class="body"><div class="name">산책용 하네스 M</div><div class="price">26,000원</div></div></div>
+          </div>
+        </div>
+      </div></div>
+      <p class="slot-note">홈 화면 배너에서 진입(전용 탭 미생성). GET /products?category=&page=</p>
+    </div>
+
+    <!-- 13. 상품 상세 -->
+    <div class="slot">
+      <div class="slot-head"><span class="slot-num">13</span><span class="slot-name">상품 상세</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dot-cluster"><span class="bar" style="height:7px"></span><span class="bar" style="height:9px"></span><span class="bar" style="height:11px"></span></span></div>
+        <div class="content">
+          <div class="product-hero"></div>
+          <div style="font-size:14.5px;font-weight:700;">자연원 그레인프리 사료 2kg</div>
+          <div class="price-row"><span class="now">32,000원</span><span class="was">38,000원</span></div>
+          <div class="body-text" style="font-size:12px;color:var(--ink-soft);line-height:1.6;">곡물 알레르기가 있는 반려견을 위한 저자극 사료입니다. 연어 단백질 기반, 1일 2회 급여 권장.</div>
+          <div class="spacer"></div>
+          <div class="btn btn-primary" style="margin-bottom:18px;">🛒 장바구니 담기</div>
+        </div>
+      </div></div>
+      <p class="slot-note">GET /products/{id}, POST /cart/items</p>
+    </div>
+
+    <!-- 14. 장바구니 / 결제 -->
+    <div class="slot">
+      <div class="slot-head"><span class="slot-num">14</span><span class="slot-name">장바구니 · 결제</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="dot-cluster"><span class="bar" style="height:7px"></span><span class="bar" style="height:9px"></span><span class="bar" style="height:11px"></span></span></div>
+        <div class="content">
+          <div style="font-size:15px;font-weight:800;">장바구니</div>
+          <div class="cart-item"><div class="thumb"></div><div style="flex:1;"><div class="name">자연원 그레인프리 사료 2kg</div><div class="price">32,000원</div></div><div class="qty"><span>−</span><span>1</span><span>+</span></div></div>
+          <div class="cart-item"><div class="thumb"></div><div style="flex:1;"><div class="name">연어 트릿 스틱 10p</div><div class="price">12,900원</div></div><div class="qty"><span>−</span><span>1</span><span>+</span></div></div>
+          <div class="spacer"></div>
+          <div class="total-row"><span>총 결제금액</span><b>44,900원</b></div>
+          <div class="btn btn-primary" style="margin-bottom:18px;">결제하기</div>
+        </div>
+      </div></div>
+      <p class="slot-note">GET /cart, POST /orders (외부 PG 연동, 카드정보 비저장)</p>
     </div>
 
   </div>

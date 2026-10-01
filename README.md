@@ -27,6 +27,7 @@
 | 7 | 맞춤형 산책 코스 추천 | 산책 이력·공공데이터·날씨/미세먼지 학습 → 개인화 코스 추천 | MVP~확장 |
 | 8 | 반려견 사진 AI | 견종 추정, "이달의 산책 베스트샷" 자동 큐레이션 | 확장 |
 | 9 | 커뮤니티 모더레이션 AI | 욕설·스팸 게시글/댓글 자동 필터링 | 확장 |
+| 10 | 애완용품 마켓 | 사료·간식·장난감 등 상품 목록/장바구니/주문, 외부 PG 연동 결제 | 확장(Phase 5) |
 
 AI 건강 분석(오진 시 법적 책임 리스크)은 이번 버전 범위에서 제외.
 
@@ -39,6 +40,7 @@ AI 건강 분석(오진 시 법적 책임 리스크)은 이번 버전 범위에�
 | 데이터베이스 | MySQL (로컬 시작, JPA/Hibernate로 종속성 최소화) |
 | 인증/보안 | JWT + OAuth 2.0, Apple 로그인 |
 | AI | 외부 사전학습 API/모델 우선 활용 |
+| 결제(PG) | 외부 PG 연동(토스페이먼츠 등) | 자체 PG 미구현, 카드정보 비저장(토큰화) |
 
 ## 로드맵
 
@@ -46,6 +48,7 @@ AI 건강 분석(오진 시 법적 책임 리스크)은 이번 버전 범위에�
 2. **Phase 2** — 코스 추천(규칙 기반) 출시, 클라우드 인프라 전환
 3. **Phase 3** — AI 코스 추천 고도화, 반려견 사진 AI
 4. **Phase 4** — 커뮤니티 모더레이션 AI, 안정화
+5. **Phase 5** — 애완용품 마켓(상품·장바구니·주문/결제) 출시
 
 ## 저장소 구조
 
@@ -64,6 +67,7 @@ frontend/
 │   ├── screens/
 │   │   ├── auth/
 │   │   ├── dog/
+│   │   ├── shop/
 │   │   ├── walk/
 │   │   ├── map/
 │   │   ├── course/
@@ -85,6 +89,7 @@ backend/
 ├── src/main/java/com/dangsanchaek/
 │   ├── auth/
 │   ├── dog/                   # 반려견 프로필 등록/수정 (POST·PATCH /dogs)
+│   ├── shop/                  # 애완용품 마켓 — 상품/장바구니/주문·결제
 │   ├── community/
 │   ├── walk/
 │   ├── map/
@@ -102,7 +107,7 @@ backend/
 └── build.gradle
 ```
 
-> 각 도메인 패키지(auth/dog/community/walk/map/course/ai/infra)는 controller / service / repository / domain / dto의 동일한 하위 구조로 통일합니다.
+> 각 도메인 패키지(auth/dog/shop/community/walk/map/course/ai/infra)는 controller / service / repository / domain / dto의 동일한 하위 구조로 통일합니다.
 
 ## Git / 브랜치 전략
 
