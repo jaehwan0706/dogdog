@@ -3,3 +3,28 @@ spring:
     name: dangsanchaek-server
   profiles:
     active: local
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        default_batch_fetch_size: 100
+
+# ---------------------------------------------------------------
+# 애플리케이션 설정 (비밀 값은 환경변수로 주입, 로컬은 application-local.yml 에서 덮어씀)
+# ---------------------------------------------------------------
+app:
+  jwt:
+    secret: ${JWT_SECRET:}             # 32바이트 이상 필수
+    issuer: dangsanchaek
+    access-token-ttl: 30m
+    refresh-token-ttl: 14d
+  oauth:
+    mock-enabled: false                # true 면 "mock:{id}:{email}" 소셜 토큰 허용 (로컬 테스트 전용)
+    google-client-ids: ${GOOGLE_CLIENT_IDS:}   # 콤마 구분 (iOS, Android, Web 클라이언트 ID)
+    apple-client-ids: ${APPLE_CLIENT_IDS:}     # 콤마 구분 (Bundle ID, Services ID)
+  payment:
+    mode: ${PAYMENT_MODE:toss}         # toss | mock
+    toss-secret-key: ${TOSS_SECRET_KEY:}
+    pending-order-ttl: 30m
+  admin:
+    emails: ${ADMIN_EMAILS:}           # 이 이메일로 회원가입하면 ADMIN 권한
