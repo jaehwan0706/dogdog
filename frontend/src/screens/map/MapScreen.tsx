@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { NaverMapView, type NaverMapViewRef } from '@mj-studio/react-native-naver-map';
 import { AppButton } from '../../components/AppButton';
 import { AppCard } from '../../components/AppCard';
 import { Screen } from '../../components/Screen';
+import { NaverWebMap } from '../../components/map/NaverWebMap';
+import { useCurrentLocation } from '../../hooks/useCurrentLocation';
 import { useLocationPermission } from '../../hooks/useLocationPermission';
 import { colors, radius, spacing, typography } from '../../theme';
 
@@ -12,17 +13,11 @@ import { colors, radius, spacing, typography } from '../../theme';
 const DEFAULT_CAMERA = { latitude: 37.5666, longitude: 126.9784, zoom: 15 };
 
 export function MapScreen() {
-  const mapRef = useRef<NaverMapViewRef>(null);
-  const [isMapReady, setIsMapReady] = useState(false);
   const { status, request } = useLocationPermission();
   const hasLocation = status === 'granted';
-
-  // 지도 준비 + 권한 허용이 모두 끝나면 카메라가 내 위치를 따라가도록 설정
-  useEffect(() => {
-    if (isMapReady && hasLocation) {
-      mapRef.current?.setLocationTrackingMode('Follow');
-    }
-  }, [isMapReady, hasLocation]);
+  const myLocation = useCurrentLocation(hasLocation);
+  // 처음엔 내 위치를 따라가고, 지도를 직접 끌면 멈춤 → 내 위치 버튼으로 다시 켬
+  const [follow, setFollow] = useState(true);
 
   return (
     <Screen title="산책 지도" subtitle="보리와 함께 걸었던 장소를 한눈에 모아보세요." scroll={false}>
@@ -39,14 +34,27 @@ export function MapScreen() {
       </View>
 
       <View style={styles.mapCard}>
-        <NaverMapView
-          ref={mapRef}
+        <NaverWebMap
           style={styles.map}
           initialCamera={DEFAULT_CAMERA}
-          locale="ko"
-          isShowLocationButton={hasLocation}
-          onInitialized={() => setIsMapReady(true)}
+          myLocation={myLocation}
+          follow={follow}
+          onUserGesture={() => setFollow(false)}
         />
+        {myLocation && (
+          <Pressable
+            style={styles.locationButton}
+            onPress={() => setFollow(true)}
+            accessibilityRole="button"
+            accessibilityLabel="내 위치로 이동"
+          >
+            <MaterialCommunityIcons
+              name={follow ? 'crosshairs-gps' : 'crosshairs'}
+              size={22}
+              color={follow ? colors.forest : colors.inkSoft}
+            />
+          </Pressable>
+        )}
         {(status === 'denied' || status === 'blocked') && (
           <View style={styles.banner}>
             <AppCard>
@@ -98,6 +106,7 @@ const styles = StyleSheet.create({
   // 남은 세로 공간을 지도가 채우도록 flex: 1 (Screen scroll={false})
   mapCard: { flex: 1, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.line },
   map: { flex: 1 },
+  locationButton: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: 99, borderWidth: 1, height: 42, justifyContent: 'center', position: 'absolute', right: spacing.md, top: spacing.md, width: 42 },
   banner: { position: 'absolute', left: spacing.md, right: spacing.md, bottom: spacing.md },
   bannerText: { ...typography.body, color: colors.ink },
   bannerButton: { marginTop: spacing.md },
