@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState } from 'react-native';
+import { Alert, AppState, Platform } from 'react-native';
 import * as Location from 'expo-location';
 
 // granted: 허용 / denied: 거부(다시 물어볼 수 있음) / blocked: 다시 물어볼 수 없음(설정에서만 변경)
@@ -23,6 +23,10 @@ function toStatus(
 
 // 시스템 팝업 전에 왜 위치가 필요한지 먼저 설명 (사전 안내)
 function showPrePrompt(): Promise<boolean> {
+  // 웹은 Alert.alert 가 동작하지 않아 응답이 오지 않음 → 브라우저 권한 팝업으로 바로 진행
+  if (Platform.OS === 'web') {
+    return Promise.resolve(true);
+  }
   return new Promise(resolve => {
     Alert.alert(
       '위치 권한이 필요해요',
