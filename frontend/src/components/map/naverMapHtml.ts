@@ -1,11 +1,19 @@
 // WebView 안에서 실행되는 지도 페이지 (네이버 지도 JavaScript API v3)
 // 앱 → 지도: window.__fromApp({ type: 'location', ... }) 를 injectJavaScript 로 호출
 // 지도 → 앱: window.ReactNativeWebView.postMessage(JSON 문자열)
+// 웹(브라우저)은 이 페이지를 쓰지 않고 NaverWebMap.web.tsx 가 페이지에 지도를 직접 띄움
 
 export type MapCamera = { latitude: number; longitude: number; zoom: number };
 
+export function naverMapScriptUrl(clientId: string) {
+  return `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(clientId)}`;
+}
+
+// 내 위치 점 / 오차 원 색
+export const MY_LOCATION_COLOR = '#2F80ED';
+
 export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
-  const scriptUrl = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(clientId)}`;
+  const scriptUrl = naverMapScriptUrl(clientId);
 
   return `<!DOCTYPE html>
 <html>
@@ -16,7 +24,7 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
   html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; }
   /* 길게 눌렀을 때 텍스트 선택·복사 메뉴가 뜨지 않도록 */
   body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-  .me { width: 14px; height: 14px; border-radius: 50%; background: #2F80ED; border: 3px solid #fff; box-shadow: 0 0 4px rgba(0, 0, 0, 0.35); }
+  .me { width: 14px; height: 14px; border-radius: 50%; background: ${MY_LOCATION_COLOR}; border: 3px solid #fff; box-shadow: 0 0 4px rgba(0, 0, 0, 0.35); }
 </style>
 <script>
   function post(message) {
@@ -67,7 +75,7 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
           center: position,
           radius: 0,
           strokeOpacity: 0,
-          fillColor: '#2F80ED',
+          fillColor: '${MY_LOCATION_COLOR}',
           fillOpacity: 0.15,
           clickable: false,
         });
@@ -82,6 +90,10 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
     }
 
     window.__fromApp = function (message) {
+      // 인증 실패 시 네이버 SDK 가 naver.maps 를 비우므로 그 뒤 메시지는 무시
+      if (!naver.maps) {
+        return;
+      }
       if (message.type === 'location') {
         updateMyLocation(message);
       }
