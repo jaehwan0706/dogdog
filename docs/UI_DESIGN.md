@@ -7,9 +7,9 @@
 ## 시각 언어
 
 - Primary: Deep Forest Green
-- Background: Warm Ivory / Cream
-- Accent: Warm Orange / Mustard
-- Surface: White / Light Cream
+- Background: Cool Off-white / Light Gray
+- Accent: Fresh Warm Orange
+- Surface: White / Pale Sage
 - Text: Dark Charcoal
 - 둥근 카드, 충분한 여백, 큰 반려견·산책 이미지
 - 중요한 CTA는 명확하게 표시
@@ -22,13 +22,13 @@
 
 - Forest: `#184D3B`
 - Forest Deep: `#182720`
-- Ivory: `#F6F1E2`
-- Ivory Soft: `#EFE8D4`
-- Orange: `#DD9A2E`
+- Ivory: `#F5F7F5`
+- Ivory Soft: `#EAF0EC`
+- Orange: `#E9903A`
 - Coral: `#D96D4B`
-- Ink: `#2A2A20`
-- Ink Soft: `#6B6A5C`
-- Line: `#DDD6BF`
+- Ink: `#202824`
+- Ink Soft: `#66706A`
+- Line: `#DDE4DF`
 - 기본 모서리: 12–20px
 - 화면 좌우 기본 여백: 20–24px
 
