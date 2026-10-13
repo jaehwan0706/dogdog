@@ -4,3 +4,10 @@ node_modules/
 dist/
 web-build/
 *.log
+
+# 로컬 비밀값 (네이버 지도 Client ID 등)
+.env
+
+# expo prebuild 가 생성하는 네이티브 폴더
+/android
+/ios
