@@ -5,17 +5,21 @@ type AppButtonProps = {
   label: string;
   onPress?: () => void;
   variant?: 'primary' | 'secondary' | 'ghost';
+  disabled?: boolean;
 };
 
-export function AppButton({ label, onPress, variant = 'primary' }: AppButtonProps) {
+export function AppButton({ label, onPress, variant = 'primary', disabled = false }: AppButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,
         styles[variant],
         pressed && styles.pressed,
+        disabled && styles.disabled,
       ]}
     >
       <Text style={[styles.label, variant === 'primary' ? styles.primaryLabel : styles.secondaryLabel]}>
@@ -40,4 +44,5 @@ const styles = StyleSheet.create({
   primaryLabel: { color: colors.white },
   secondaryLabel: { color: colors.ink },
   pressed: { opacity: 0.78 },
+  disabled: { opacity: 0.45 },
 });

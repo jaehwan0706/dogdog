@@ -26,6 +26,12 @@
 - `GET /users/me`
 - `GET /users/me/walks`
 - `GET /users/me/posts`
+- `GET /products`, `GET /products/{id}`
+- `GET /cart`, `POST /cart/items`, `PATCH /cart/items/{id}`, `DELETE /cart/items/{id}`
+- `POST /orders`, `GET /orders`, `GET /orders/{orderNo}`
+- `POST /orders/{orderNo}/payments/confirm`, `POST /orders/{orderNo}/cancel`
+
+마켓은 `src/api/shop/shopService.ts` 계약을 사용한다. `EXPO_PUBLIC_API_BASE_URL` 이 없으면 `mockShopService`(하드코딩 상품·메모리 장바구니·테스트 결제), 있으면 `httpShopService` 로 백엔드를 호출한다.
 
 ## 주의사항
 
