@@ -35,6 +35,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**", "/error").permitAll()
                         .requestMatchers(HttpMethod.GET, "/posts/**", "/products/**").permitAll()
+                        // 업로드 파일은 URL 서명·만료로 접근을 제한한다 (FileController)
+                        .requestMatchers(HttpMethod.GET, "/files/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth

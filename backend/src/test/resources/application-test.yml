@@ -20,3 +20,5 @@ app:
     mode: mock
   admin:
     emails: admin@test.dev
+  storage:
+    local-dir: build/test-uploads

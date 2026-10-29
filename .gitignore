@@ -11,6 +11,8 @@ frontend/android/app/build/
 backend/.gradle/
 backend/build/
 backend/src/main/resources/application-local.yml
+backend/uploads/
+backend/bin/
 
 # common
 *.log
