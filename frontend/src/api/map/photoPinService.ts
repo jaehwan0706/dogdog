@@ -1,3 +1,4 @@
+import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
 import { API_BASE_URL, apiRequest } from '../client';
 import { isMockAuth } from '../auth/authService';
@@ -21,8 +22,11 @@ async function toFormData({ photo, latitude, longitude, memo, walkId }: PhotoPin
     const blob = await (await fetch(photo.uri)).blob();
     form.append('image', blob, photo.fileName);
   } else {
-    // iOS/Android 는 { uri, name, type } 을 넣으면 RN 이 파일을 읽어 전송한다
-    form.append('image', { uri: photo.uri, name: photo.fileName, type: photo.mimeType } as unknown as Blob);
+    // Expo SDK 58 부터 fetch 가 expo/fetch 로 바뀌어 RN 식 { uri, name, type } 첨부를 지원하지 않는다.
+    // expo/fetch 는 { name, type, bytes() } 형태를 받으므로 파일 내용만 expo-file-system 으로 읽어서 넣는다
+    const file = new File(photo.uri);
+    const part = { name: photo.fileName, type: photo.mimeType, bytes: () => file.bytes() };
+    form.append('image', part as unknown as Blob);
   }
   form.append('latitude', String(latitude));
   form.append('longitude', String(longitude));

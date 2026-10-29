@@ -51,7 +51,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       },
       body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
-  } catch {
+  } catch (e) {
+    // 요청 본문 변환 실패 같은 앱 쪽 오류도 여기로 오므로 개발 중에는 실제 원인을 Metro 터미널에 남긴다
+    if (__DEV__) console.warn(`[api] ${method} ${path} 요청 실패:`, e);
     throw new ApiError(0, 'NETWORK_ERROR', '네트워크 연결을 확인해 주세요.');
   }
 
