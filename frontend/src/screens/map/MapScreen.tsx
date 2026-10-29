@@ -7,12 +7,15 @@ import { Screen } from '../../components/Screen';
 import { NaverWebMap } from '../../components/map/NaverWebMap';
 import { useCurrentLocation } from '../../hooks/useCurrentLocation';
 import { useLocationPermission } from '../../hooks/useLocationPermission';
+import { useMainDog } from '../../store/dogStore';
 import { colors, radius, spacing, typography } from '../../theme';
+import { withJosa } from '../../utils/format';
 
 // 위치를 받기 전 기본으로 보여줄 좌표 (서울시청)
 const DEFAULT_CAMERA = { latitude: 37.5666, longitude: 126.9784, zoom: 15 };
 
 export function MapScreen() {
+  const withDog = withJosa(useMainDog()?.name ?? '우리 아이', '과', '와');
   const { status, request } = useLocationPermission();
   const hasLocation = status === 'granted';
   const myLocation = useCurrentLocation(hasLocation);
@@ -20,7 +23,7 @@ export function MapScreen() {
   const [follow, setFollow] = useState(true);
 
   return (
-    <Screen title="산책 지도" subtitle="보리와 함께 걸었던 장소를 한눈에 모아보세요." scroll={false}>
+    <Screen title="산책 지도" subtitle={`${withDog} 함께 걸었던 장소를 한눈에 모아보세요.`} scroll={false}>
       {/* 검색·필터는 아직 UI 만 있음 (시설/사진 핀 API 연동 시 동작 추가) */}
       <View style={styles.search}>
         <MaterialCommunityIcons name="magnify" size={20} color={colors.inkSoft} />
@@ -77,7 +80,7 @@ export function MapScreen() {
             <MaterialCommunityIcons name="storefront-outline" size={21} color={colors.forest} />
           </View>
           <View style={styles.cardCopy}>
-            <Text style={styles.cardTitle}>보리와 함께 찾은 장소</Text>
+            <Text style={styles.cardTitle}>{withDog} 함께 찾은 장소</Text>
             <Text style={styles.cardBody}>반려동물과 함께 갈 수 있는 장소를 추천해드려요.</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={22} color={colors.inkFaint} />

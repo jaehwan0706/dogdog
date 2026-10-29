@@ -7,12 +7,14 @@ import { Screen } from '../../components/Screen';
 import { CartButton, LoadState, ProductThumb } from '../../components/shop/ShopParts';
 import { isMockShop, shopService } from '../../api/shop/shopService';
 import { useAsyncData } from '../../hooks/useAsyncData';
+import { useMainDog } from '../../store/dogStore';
 import type { ShopScreenProps } from '../../navigation/ShopNavigator';
 import { colors, radius, spacing, typography } from '../../theme';
 import type { Product, ProductCategory } from '../../types/shop';
 import { formatWon, productCategories } from '../../utils/shop';
 
 export function MarketScreen({ navigation }: ShopScreenProps<'MarketHome'>) {
+  const dogName = useMainDog()?.name ?? '우리 아이';
   const [category, setCategory] = useState<ProductCategory | undefined>();
   const [keywordInput, setKeywordInput] = useState('');
   const [keyword, setKeyword] = useState('');
@@ -32,7 +34,7 @@ export function MarketScreen({ navigation }: ShopScreenProps<'MarketHome'>) {
   return (
     <Screen
       title="댕마켓"
-      subtitle="보리에게 꼭 맞는 산책 아이템을 찾아보세요."
+      subtitle={`${dogName}에게 꼭 맞는 산책 아이템을 찾아보세요.`}
       headerRight={<CartButton count={cartCount} onPress={() => navigation.navigate('Cart')} />}
     >
       {isMockShop ? <Text style={styles.mockNotice}>테스트 모드 · 실제 결제가 되지 않아요</Text> : null}
@@ -71,7 +73,7 @@ export function MarketScreen({ navigation }: ShopScreenProps<'MarketHome'>) {
       </View>
 
       <View style={styles.sectionRow}>
-        <Text style={styles.sectionTitle}>{keyword ? `'${keyword}' 검색 결과` : '보리에게 딱 맞아요'}</Text>
+        <Text style={styles.sectionTitle}>{keyword ? `'${keyword}' 검색 결과` : `${dogName}에게 딱 맞아요`}</Text>
         <Text style={styles.count}>{products.data ? `${products.data.totalElements}개` : ''}</Text>
       </View>
 

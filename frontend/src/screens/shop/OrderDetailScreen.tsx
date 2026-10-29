@@ -7,14 +7,17 @@ import { Screen } from '../../components/Screen';
 import { LoadState, SummaryRow } from '../../components/shop/ShopParts';
 import { shopService } from '../../api/shop/shopService';
 import { useAsyncData } from '../../hooks/useAsyncData';
+import { useMainDog } from '../../store/dogStore';
 import type { ShopScreenProps } from '../../navigation/ShopNavigator';
 import { colors, spacing, typography } from '../../theme';
 import { confirmAction, notify } from '../../utils/dialog';
 import { formatDateTime, formatWon } from '../../utils/shop';
+import { withJosa } from '../../utils/format';
 import { StatusBadge } from './OrderListScreen';
 
 export function OrderDetailScreen({ navigation, route }: ShopScreenProps<'OrderDetail'>) {
   const { orderNo, justPaid = false } = route.params;
+  const dogName = useMainDog()?.name ?? '우리 아이';
   const { data: order, setData, loading, error, reload } = useAsyncData(() => shopService.getOrder(orderNo), [orderNo]);
   const [cancelling, setCancelling] = useState(false);
 
@@ -47,7 +50,7 @@ export function OrderDetailScreen({ navigation, route }: ShopScreenProps<'OrderD
             <View style={styles.done}>
               <MaterialCommunityIcons name="check-circle" size={52} color={colors.forest} />
               <Text style={styles.doneTitle}>결제가 완료됐어요</Text>
-              <Text style={styles.doneBody}>보리와의 산책이 더 즐거워질 거예요 🐾</Text>
+              <Text style={styles.doneBody}>{withJosa(dogName, '과', '와')}의 산책이 더 즐거워질 거예요 🐾</Text>
             </View>
           ) : null}
 

@@ -1,17 +1,17 @@
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, type NavigatorScreenParams } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HomeScreen } from '../screens/HomeScreen';
 import { MapScreen } from '../screens/map/MapScreen';
-import { CommunityScreen } from '../screens/community/CommunityScreen';
+import { CommunityNavigator, type CommunityStackParamList } from './CommunityNavigator';
 import { ShopNavigator } from './ShopNavigator';
-import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { ProfileNavigator } from './ProfileNavigator';
 import { colors, typography } from '../theme';
 
 export type RootTabParamList = {
   홈: undefined;
   지도: undefined;
-  커뮤니티: undefined;
+  커뮤니티: NavigatorScreenParams<CommunityStackParamList> | undefined;
   마켓: undefined;
   프로필: undefined;
 };
@@ -40,9 +40,9 @@ export function RootNavigator() {
       >
         <Tab.Screen name="홈" component={HomeScreen} options={{ tabBarIcon: ({ color }) => <MaterialCommunityIcons name={tabIcons.홈} size={22} color={color} /> }} />
         <Tab.Screen name="지도" component={MapScreen} options={{ tabBarIcon: ({ color }) => <MaterialCommunityIcons name={tabIcons.지도} size={22} color={color} /> }} />
-        <Tab.Screen name="커뮤니티" component={CommunityScreen} options={{ tabBarIcon: ({ color }) => <MaterialCommunityIcons name={tabIcons.커뮤니티} size={22} color={color} /> }} />
+        <Tab.Screen name="커뮤니티" component={CommunityNavigator} options={{ tabBarIcon: ({ color }) => <MaterialCommunityIcons name={tabIcons.커뮤니티} size={22} color={color} /> }} />
         <Tab.Screen name="마켓" component={ShopNavigator} options={{ tabBarIcon: ({ color }) => <MaterialCommunityIcons name={tabIcons.마켓} size={22} color={color} /> }} />
-        <Tab.Screen name="프로필" component={ProfileScreen} options={{ tabBarIcon: ({ color }) => <MaterialCommunityIcons name={tabIcons.프로필} size={22} color={color} /> }} />
+        <Tab.Screen name="프로필" component={ProfileNavigator} options={{ tabBarIcon: ({ color }) => <MaterialCommunityIcons name={tabIcons.프로필} size={22} color={color} /> }} />
       </Tab.Navigator>
     </NavigationContainer>
   );
