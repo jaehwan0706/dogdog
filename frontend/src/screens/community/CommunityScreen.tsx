@@ -1,11 +1,75 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
-import { AppCard } from '../../components/AppCard';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { communityService } from '../../api/community/communityService';
+import { PostCard, categoryLabel } from '../../components/community/PostCard';
 import { Screen } from '../../components/Screen';
+import { LoadState } from '../../components/shop/ShopParts';
+import { useAsyncData } from '../../hooks/useAsyncData';
+import type { CommunityScreenProps } from '../../navigation/CommunityNavigator';
 import { colors, radius, spacing, typography } from '../../theme';
+import type { PostCategory } from '../../types/community';
 
-export function CommunityScreen() {
-  return <Screen title="동네 댕친구" subtitle="우리 동네 보호자들과 산책 이야기를 나눠보세요."><View style={styles.topRow}><View style={styles.search}><MaterialCommunityIcons name="magnify" size={19} color={colors.inkSoft} /><Text style={styles.searchText}>게시글을 검색해보세요</Text></View><View style={styles.bell}><MaterialCommunityIcons name="bell-outline" size={21} color={colors.forest} /></View></View><View style={styles.filters}><Filter label="전체" active /><Filter label="산책메이트" /><Filter label="케어 품앗이" /></View><View style={styles.people}><Text style={styles.sectionTitle}>지금 산책 중인 친구</Text><View style={styles.avatars}>{['콩이', '몽이', '보리', '초코', '루루'].map((name, index) => <View key={name} style={styles.person}><View style={[styles.avatar, { backgroundColor: [colors.orangeSoft, '#D5E5D8', '#F2C9A5', '#D8E6E9', '#E6D5E3'][index] }]}><MaterialCommunityIcons name="paw" size={19} color={colors.forest} /></View><Text style={styles.personName}>{name}</Text></View>)}</View></View><AppCard><View style={styles.postHead}><View style={styles.avatarSmall}><MaterialCommunityIcons name="paw" size={17} color={colors.white} /></View><View style={styles.postMeta}><Text style={styles.postAuthor}>콩이네 · 서울숲</Text><Text style={styles.postTime}>12분 전 · 산책메이트</Text></View><MaterialCommunityIcons name="dots-horizontal" size={20} color={colors.inkFaint} /></View><Text style={styles.postTitle}>서울숲 근처에서 같이 걸어요 🐾</Text><Text style={styles.postBody}>오늘 저녁 6시쯤 함께 산책할 친구를 찾고 있어요. 편하게 댓글 남겨주세요!</Text><View style={styles.postImage}><MaterialCommunityIcons name="image-outline" size={28} color={colors.inkFaint} /><Text style={styles.imageText}>산책 사진</Text></View><View style={styles.reactions}><Text>♡ 24</Text><Text>◌ 8</Text><Text style={styles.bookmark}>♧</Text></View></AppCard><View style={styles.fab}><MaterialCommunityIcons name="plus" size={25} color={colors.white} /></View></Screen>;
+const filters: (PostCategory | undefined)[] = [undefined, 'FREE', 'WALK_MATE', 'CARE_SHARE'];
+
+export function CommunityScreen({ navigation }: CommunityScreenProps<'CommunityHome'>) {
+  const [category, setCategory] = useState<PostCategory | undefined>();
+  const [keywordInput, setKeywordInput] = useState('');
+  const [keyword, setKeyword] = useState('');
+  const posts = useAsyncData(() => communityService.getPosts({ category, keyword }), [category, keyword]);
+
+  // 상세·글쓰기에서 돌아오면 좋아요·댓글 수가 바뀌었을 수 있어 다시 불러옴 (첫 진입은 useAsyncData 가 처리)
+  const focusedOnce = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (focusedOnce.current) posts.reload();
+      focusedOnce.current = true;
+    }, [posts.reload]),
+  );
+
+  const items = posts.data?.content ?? [];
+
+  return (
+    <Screen title="동네 댕친구" subtitle="우리 동네 보호자들과 산책 이야기를 나눠보세요.">
+      <View style={styles.search}>
+        <MaterialCommunityIcons name="magnify" size={19} color={colors.inkSoft} />
+        <TextInput
+          onChangeText={setKeywordInput}
+          onSubmitEditing={() => setKeyword(keywordInput.trim())}
+          placeholder="게시글을 검색해보세요"
+          placeholderTextColor={colors.inkFaint}
+          returnKeyType="search"
+          style={styles.searchInput}
+          value={keywordInput}
+        />
+      </View>
+      <View style={styles.filters}>
+        {filters.map((value) => (
+          <Pressable key={value ?? 'ALL'} accessibilityRole="button" accessibilityState={{ selected: category === value }} onPress={() => setCategory(value)} style={[styles.filter, category === value && styles.filterActive]}>
+            <Text style={[styles.filterText, category === value && styles.filterTextActive]}>{value ? categoryLabel[value] : '전체'}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Pressable accessibilityRole="button" onPress={() => navigation.navigate('PostWrite')} style={styles.write}>
+        <MaterialCommunityIcons name="pencil-plus-outline" size={20} color={colors.white} />
+        <Text style={styles.writeText}>글쓰기</Text>
+      </Pressable>
+      {items.length > 0 && !posts.error
+        ? items.map((post) => <PostCard key={post.id} post={post} onPress={() => navigation.navigate('PostDetail', { postId: post.id })} />)
+        : <LoadState loading={posts.loading} error={posts.error} empty emptyText={keyword ? '검색 결과가 없어요.' : '아직 게시글이 없어요. 첫 글을 남겨보세요!'} onRetry={posts.reload} />}
+    </Screen>
+  );
 }
-function Filter({ label, active = false }: { label: string; active?: boolean }) { return <View style={[styles.filter, active && styles.filterActive]}><Text style={[styles.filterText, active && styles.filterTextActive]}>{label}</Text></View>; }
-const styles = StyleSheet.create({ topRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm }, search: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, flex: 1, flexDirection: 'row', gap: spacing.sm, padding: spacing.md }, searchText: { color: colors.inkFaint, ...typography.caption }, bell: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, height: 45, justifyContent: 'center', width: 45 }, filters: { flexDirection: 'row', gap: spacing.sm }, filter: { backgroundColor: colors.white, borderColor: colors.line, borderRadius: 99, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: spacing.sm }, filterActive: { backgroundColor: colors.forest, borderColor: colors.forest }, filterText: { color: colors.inkSoft, ...typography.label }, filterTextActive: { color: colors.white }, people: { gap: spacing.md }, sectionTitle: { color: colors.ink, ...typography.heading }, avatars: { flexDirection: 'row', justifyContent: 'space-between' }, person: { alignItems: 'center', gap: 4 }, avatar: { alignItems: 'center', borderRadius: 99, height: 48, justifyContent: 'center', width: 48 }, personName: { color: colors.inkSoft, ...typography.caption }, postHead: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm }, avatarSmall: { alignItems: 'center', backgroundColor: colors.forest, borderRadius: 99, height: 34, justifyContent: 'center', width: 34 }, postMeta: { flex: 1 }, postAuthor: { color: colors.ink, ...typography.label }, postTime: { color: colors.inkFaint, marginTop: 2, ...typography.caption }, postTitle: { color: colors.ink, marginTop: spacing.lg, ...typography.heading }, postBody: { color: colors.inkSoft, marginTop: spacing.xs, ...typography.body }, postImage: { alignItems: 'center', backgroundColor: colors.ivorySoft, borderRadius: radius.md, height: 170, justifyContent: 'center', marginTop: spacing.lg }, imageText: { color: colors.inkFaint, marginTop: spacing.xs, ...typography.caption }, reactions: { color: colors.inkSoft, flexDirection: 'row', gap: spacing.lg, marginTop: spacing.md, ...typography.caption }, bookmark: { marginLeft: 'auto' }, fab: { alignItems: 'center', alignSelf: 'flex-end', backgroundColor: colors.forest, borderRadius: 99, elevation: 3, height: 54, justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 5, width: 54 } });
+
+const styles = StyleSheet.create({
+  search: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.md },
+  searchInput: { color: colors.ink, flex: 1, minHeight: 45, ...typography.body },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  filter: { backgroundColor: colors.white, borderColor: colors.line, borderRadius: 99, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  filterActive: { backgroundColor: colors.forest, borderColor: colors.forest },
+  filterText: { color: colors.inkSoft, ...typography.label },
+  filterTextActive: { color: colors.white },
+  write: { alignItems: 'center', alignSelf: 'flex-end', backgroundColor: colors.forest, borderRadius: 99, flexDirection: 'row', gap: spacing.xs, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+  writeText: { color: colors.white, ...typography.label },
+});

@@ -1,12 +1,112 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { authService } from '../../api/auth/authService';
+import { userService } from '../../api/user/userService';
 import { AppCard } from '../../components/AppCard';
 import { Screen } from '../../components/Screen';
+import { LoadState } from '../../components/shop/ShopParts';
+import { useAsyncData } from '../../hooks/useAsyncData';
+import type { ProfileScreenProps } from '../../navigation/ProfileNavigator';
+import { useDogs } from '../../store/dogStore';
 import { colors, radius, spacing, typography } from '../../theme';
+import { confirmAction, notify } from '../../utils/dialog';
+import { dogSummary } from '../../utils/format';
 
-export function ProfileScreen() {
-  return <Screen title="마이페이지" subtitle="보리의 산책 기록과 프로필을 관리해보세요."><AppCard><View style={styles.profile}><View style={styles.avatar}><MaterialCommunityIcons name="dog" size={38} color={colors.forest} /></View><View style={styles.profileCopy}><Text style={styles.name}>보리</Text><Text style={styles.meta}>골든 리트리버 · 3살 · 24kg</Text></View><MaterialCommunityIcons name="pencil-outline" size={21} color={colors.forest} /></View><View style={styles.stats}><Stat value="128회" label="산책" /><Stat value="286km" label="총 거리" /><Stat value="47시간" label="함께한 시간" /></View></AppCard><View style={styles.sectionRow}><Text style={styles.sectionTitle}>10월 산책 리포트</Text><Text style={styles.more}>자세히</Text></View><AppCard><View style={styles.reportTop}><Text style={styles.reportScore}>72%</Text><View><Text style={styles.reportTitle}>이번 달도 꾸준히 걷고 있어요</Text><Text style={styles.reportBody}>지난 달보다 12% 더 많이 산책했어요.</Text></View></View><View style={styles.progress}><View style={styles.progressFill} /></View></AppCard><View style={styles.menu}><Menu icon="dog" title="반려견 프로필 관리" body="건강 정보와 프로필 사진을 관리해요" /><Menu icon="calendar-check-outline" title="산책 기록" body="지금까지의 산책을 모아보세요" /><Menu icon="map-marker-outline" title="저장한 코스·장소" body="다시 가고 싶은 장소를 확인해요" /><Menu icon="package-variant-closed" title="주문·배송" body="마켓 주문 내역을 확인해요" /></View></Screen>;
+const providerLabel = { LOCAL: '이메일', KAKAO: '카카오', GOOGLE: 'Google', NAVER: '네이버', APPLE: 'Apple' } as const;
+
+export function ProfileScreen({ navigation }: ProfileScreenProps<'ProfileHome'>) {
+  const me = useAsyncData(() => userService.getMe(), []);
+  const { dogs } = useDogs();
+
+  const withdraw = () =>
+    confirmAction({
+      title: '정말 탈퇴할까요?',
+      message: '반려견 정보와 작성한 글이 모두 삭제되고 되돌릴 수 없어요.',
+      confirmText: '탈퇴하기',
+      destructive: true,
+      onConfirm: () => userService.withdraw().catch((e: Error) => notify('탈퇴하지 못했어요', e.message)),
+    });
+
+  return (
+    <Screen title="마이페이지" subtitle="내 정보와 반려견 프로필을 관리해보세요.">
+      <AppCard>
+        {me.data ? (
+          <View style={styles.userRow}>
+            <View style={styles.userAvatar}><MaterialCommunityIcons name="account" size={28} color={colors.forest} /></View>
+            <View style={styles.flex}>
+              <Text style={styles.userName}>{me.data.nickname}</Text>
+              <Text style={styles.meta}>{me.data.email} · {providerLabel[me.data.provider]} 로그인</Text>
+            </View>
+          </View>
+        ) : (
+          <LoadState loading={me.loading} error={me.error} onRetry={me.reload} />
+        )}
+      </AppCard>
+
+      <View style={styles.sectionRow}>
+        <Text style={styles.sectionTitle}>우리 아이</Text>
+        <Pressable accessibilityRole="button" hitSlop={8} onPress={() => navigation.navigate('DogEdit', {})}>
+          <Text style={styles.more}>+ 추가</Text>
+        </Pressable>
+      </View>
+      {(dogs ?? []).map((dog) => (
+        <Pressable key={dog.id} accessibilityRole="button" accessibilityLabel={`${dog.name} 프로필 수정`} onPress={() => navigation.navigate('DogEdit', { dogId: dog.id })}>
+          <AppCard>
+            <View style={styles.userRow}>
+              <View style={styles.dogAvatar}><MaterialCommunityIcons name="dog" size={32} color={colors.forest} /></View>
+              <View style={styles.flex}>
+                <Text style={styles.dogName}>{dog.name}</Text>
+                <Text style={styles.meta}>{dogSummary(dog)}</Text>
+              </View>
+              <MaterialCommunityIcons name="pencil-outline" size={21} color={colors.forest} />
+            </View>
+          </AppCard>
+        </Pressable>
+      ))}
+
+      <View style={styles.menu}>
+        <Menu icon="file-document-outline" title="내가 쓴 글" body="커뮤니티에 남긴 글을 모아봐요" onPress={() => navigation.navigate('MyPosts')} />
+        <Menu icon="calendar-check-outline" title="산책 기록" body="산책 기록 기능을 준비하고 있어요" />
+        <Menu icon="logout" title="로그아웃" body="이 기기에서 로그아웃해요" onPress={() => authService.logout()} />
+      </View>
+      <Pressable accessibilityRole="button" onPress={withdraw} style={styles.withdraw}>
+        <Text style={styles.withdrawText}>회원 탈퇴</Text>
+      </Pressable>
+    </Screen>
+  );
 }
-function Stat({ value, label }: { value: string; label: string }) { return <View style={styles.stat}><Text style={styles.statValue}>{value}</Text><Text style={styles.statLabel}>{label}</Text></View>; }
-function Menu({ icon, title, body }: { icon: string; title: string; body: string }) { return <AppCard><View style={styles.menuRow}><View style={styles.menuIcon}><MaterialCommunityIcons name={icon as never} size={21} color={colors.forest} /></View><View style={styles.menuCopy}><Text style={styles.menuTitle}>{title}</Text><Text style={styles.menuBody}>{body}</Text></View><MaterialCommunityIcons name="chevron-right" size={21} color={colors.inkFaint} /></View></AppCard>; }
-const styles = StyleSheet.create({ profile: { alignItems: 'center', flexDirection: 'row', gap: spacing.md }, avatar: { alignItems: 'center', backgroundColor: colors.orangeSoft, borderRadius: 99, height: 68, justifyContent: 'center', width: 68 }, profileCopy: { flex: 1 }, name: { color: colors.ink, ...typography.title }, meta: { color: colors.inkSoft, marginTop: 3, ...typography.caption }, stats: { borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', marginTop: spacing.lg, paddingTop: spacing.lg }, stat: { alignItems: 'center', flex: 1 }, statValue: { color: colors.ink, ...typography.heading }, statLabel: { color: colors.inkFaint, marginTop: 3, ...typography.caption }, sectionRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }, sectionTitle: { color: colors.ink, ...typography.heading }, more: { color: colors.forest, ...typography.label }, reportTop: { alignItems: 'center', flexDirection: 'row', gap: spacing.md }, reportScore: { color: colors.orange, ...typography.display }, reportTitle: { color: colors.ink, ...typography.label }, reportBody: { color: colors.inkSoft, marginTop: 3, ...typography.caption }, progress: { backgroundColor: colors.ivorySoft, borderRadius: 99, height: 9, marginTop: spacing.lg, overflow: 'hidden' }, progressFill: { backgroundColor: colors.orange, borderRadius: 99, height: 9, width: '72%' }, menu: { gap: spacing.sm }, menuRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.md }, menuIcon: { alignItems: 'center', backgroundColor: colors.forestSoft, borderRadius: radius.md, height: 42, justifyContent: 'center', width: 42 }, menuCopy: { flex: 1 }, menuTitle: { color: colors.ink, ...typography.label }, menuBody: { color: colors.inkSoft, marginTop: 2, ...typography.caption } });
+
+function Menu({ icon, title, body, onPress }: { icon: keyof typeof MaterialCommunityIcons.glyphMap; title: string; body: string; onPress?: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" disabled={!onPress} onPress={onPress} style={!onPress && styles.disabled}>
+      <AppCard>
+        <View style={styles.menuRow}>
+          <View style={styles.menuIcon}><MaterialCommunityIcons name={icon} size={21} color={colors.forest} /></View>
+          <View style={styles.flex}><Text style={styles.menuTitle}>{title}</Text><Text style={styles.menuBody}>{body}</Text></View>
+          {onPress ? <MaterialCommunityIcons name="chevron-right" size={21} color={colors.inkFaint} /> : null}
+        </View>
+      </AppCard>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  userRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
+  userAvatar: { alignItems: 'center', backgroundColor: colors.forestSoft, borderRadius: 99, height: 52, justifyContent: 'center', width: 52 },
+  userName: { color: colors.ink, ...typography.heading },
+  dogAvatar: { alignItems: 'center', backgroundColor: colors.orangeSoft, borderRadius: 99, height: 60, justifyContent: 'center', width: 60 },
+  dogName: { color: colors.ink, ...typography.title },
+  meta: { color: colors.inkSoft, marginTop: 3, ...typography.caption },
+  sectionRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  sectionTitle: { color: colors.ink, ...typography.heading },
+  more: { color: colors.forest, ...typography.label },
+  menu: { gap: spacing.sm },
+  menuRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
+  menuIcon: { alignItems: 'center', backgroundColor: colors.forestSoft, borderRadius: radius.md, height: 42, justifyContent: 'center', width: 42 },
+  menuTitle: { color: colors.ink, ...typography.label },
+  menuBody: { color: colors.inkSoft, marginTop: 2, ...typography.caption },
+  disabled: { opacity: 0.55 },
+  withdraw: { alignItems: 'center', paddingVertical: spacing.md },
+  withdrawText: { color: colors.inkFaint, textDecorationLine: 'underline', ...typography.caption },
+});

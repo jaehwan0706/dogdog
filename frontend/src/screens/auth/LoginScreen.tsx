@@ -2,17 +2,30 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { authService } from '../../api/auth/authService';
 import { AppButton } from '../../components/AppButton';
 import { colors, radius, spacing, typography } from '../../theme';
+import type { SocialProvider } from '../../types/auth';
 
-type LoginScreenProps = { onLogin: () => void };
 type AuthMode = 'landing' | 'emailLogin' | 'signUp';
 
-export function LoginScreen({ onLogin }: LoginScreenProps) {
+// 로그인에 성공하면 authStore 에 세션이 저장되고, App 이 그걸 보고 메인 화면으로 바꾼다
+export function LoginScreen() {
   const [mode, setMode] = useState<AuthMode>('landing');
+  const [socialError, setSocialError] = useState<string | null>(null);
+
+  // 소셜 SDK 연동 전 임시: 개발 빌드에서만 백엔드 mock 토큰으로 로그인 (서버 app.oauth.mock-enabled=true 필요)
+  const loginWithSocial = (provider: SocialProvider) => {
+    if (!__DEV__) {
+      setSocialError('소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요.');
+      return;
+    }
+    setSocialError(null);
+    authService.socialLogin(provider, `mock:dev-${provider}:dev-${provider}@dangsanchaek.dev`).catch((e: Error) => setSocialError(e.message));
+  };
 
   if (mode !== 'landing') {
-    return <EmailAuthScreen mode={mode} onBack={() => setMode('landing')} onSubmit={onLogin} onSwitch={() => setMode(mode === 'emailLogin' ? 'signUp' : 'emailLogin')} />;
+    return <EmailAuthScreen mode={mode} onBack={() => setMode('landing')} onSwitch={() => setMode(mode === 'emailLogin' ? 'signUp' : 'emailLogin')} />;
   }
 
   return (
@@ -33,13 +46,14 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         </View>
 
         <View style={styles.actions}>
-          <SocialButton icon="google" label="Google로 계속하기" onPress={onLogin} />
-          <SocialButton icon="message-text" label="카카오로 계속하기" onPress={onLogin} />
-          <SocialButton icon="alpha-n-box" label="네이버로 계속하기" onPress={onLogin} />
+          <SocialButton icon="google" label="Google로 계속하기" onPress={() => loginWithSocial('google')} />
+          <SocialButton icon="message-text" label="카카오로 계속하기" onPress={() => loginWithSocial('kakao')} />
+          <SocialButton icon="alpha-n-box" label="네이버로 계속하기" onPress={() => loginWithSocial('naver')} />
           <SocialButton icon="email-outline" label="이메일로 로그인" onPress={() => setMode('emailLogin')} />
           <Pressable accessibilityRole="button" onPress={() => setMode('signUp')} style={styles.signupLink}>
             <Text style={styles.signupText}>계정이 없나요? <Text style={styles.signupAccent}>회원가입</Text></Text>
           </Pressable>
+          {socialError ? <Text style={styles.errorText}>{socialError}</Text> : null}
         </View>
 
         <Text style={styles.legal}>계속하면 이용약관 및 개인정보처리방침에 동의하게 됩니다.</Text>
@@ -48,10 +62,31 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   );
 }
 
-function EmailAuthScreen({ mode, onBack, onSubmit, onSwitch }: { mode: 'emailLogin' | 'signUp'; onBack: () => void; onSubmit: () => void; onSwitch: () => void }) {
+function EmailAuthScreen({ mode, onBack, onSwitch }: { mode: 'emailLogin' | 'signUp'; onBack: () => void; onSwitch: () => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const isSignUp = mode === 'signUp';
+  const canSubmit = email.trim() !== '' && password !== '' && (!isSignUp || name.trim() !== '');
+
+  const submit = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      if (isSignUp) {
+        await authService.signup({ email: email.trim(), password, nickname: name.trim() });
+      } else {
+        await authService.login({ email: email.trim(), password });
+      }
+    } catch (e) {
+      // 성공하면 App 이 로그인 화면을 내리므로 실패했을 때만 상태를 되돌린다
+      setError(e instanceof Error ? e.message : '로그인하지 못했어요.');
+      setSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -62,10 +97,11 @@ function EmailAuthScreen({ mode, onBack, onSubmit, onSwitch }: { mode: 'emailLog
         <Text style={styles.formTitle}>{mode === 'emailLogin' ? '이메일로 로그인' : '계정 만들기'}</Text>
         <Text style={styles.formDescription}>{mode === 'emailLogin' ? '댕산책에 다시 오신 것을 환영해요.' : '댕산책과 함께 산책을 시작해보세요.'}</Text>
         <View style={styles.formFields}>
-          {mode === 'signUp' ? <TextInput onChangeText={setName} placeholder="이름" placeholderTextColor={colors.inkFaint} style={styles.input} value={name} /> : null}
+          {isSignUp ? <TextInput onChangeText={setName} placeholder="닉네임 (2~20자)" placeholderTextColor={colors.inkFaint} style={styles.input} value={name} /> : null}
           <TextInput autoCapitalize="none" keyboardType="email-address" onChangeText={setEmail} placeholder="이메일" placeholderTextColor={colors.inkFaint} style={styles.input} value={email} />
-          <TextInput onChangeText={setPassword} placeholder="비밀번호" placeholderTextColor={colors.inkFaint} secureTextEntry style={styles.input} value={password} />
-          <AppButton label={mode === 'emailLogin' ? '로그인' : '회원가입'} onPress={onSubmit} />
+          <TextInput onChangeText={setPassword} onSubmitEditing={canSubmit && !submitting ? submit : undefined} placeholder={isSignUp ? '비밀번호 (영문+숫자 8자 이상)' : '비밀번호'} placeholderTextColor={colors.inkFaint} secureTextEntry style={styles.input} value={password} />
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          <AppButton disabled={!canSubmit || submitting} label={submitting ? '잠시만요…' : isSignUp ? '회원가입' : '로그인'} onPress={submit} />
         </View>
         <Pressable accessibilityRole="button" onPress={onSwitch} style={styles.switchLink}>
           <Text style={styles.signupText}>{mode === 'emailLogin' ? '계정이 없나요? ' : '이미 계정이 있나요? '}<Text style={styles.signupAccent}>{mode === 'emailLogin' ? '회원가입' : '로그인'}</Text></Text>
@@ -106,4 +142,5 @@ const styles = StyleSheet.create({
   formFields: { gap: spacing.sm, marginTop: spacing.section },
   input: { backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, color: colors.ink, minHeight: 52, paddingHorizontal: spacing.lg },
   switchLink: { alignItems: 'center', marginTop: spacing.xl },
+  errorText: { ...typography.caption, color: '#F2A7A5', textAlign: 'center' },
 });
