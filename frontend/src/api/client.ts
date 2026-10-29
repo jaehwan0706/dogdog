@@ -37,6 +37,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
     .join('&');
   const token = accessTokenProvider();
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
 
   let response: Response;
   try {
@@ -44,10 +45,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       method,
       headers: {
         Accept: 'application/json',
-        ...(body !== undefined && { 'Content-Type': 'application/json' }),
+        // FormData(사진 업로드)는 fetch 가 multipart 경계값을 넣은 Content-Type 을 직접 붙인다
+        ...(body !== undefined && !isFormData && { 'Content-Type': 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
     throw new ApiError(0, 'NETWORK_ERROR', '네트워크 연결을 확인해 주세요.');

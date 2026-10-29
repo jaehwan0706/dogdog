@@ -16,7 +16,7 @@ import { buildNaverMapHtml } from './naverMapHtml';
 // 네이버 콘솔 "Web 서비스 URL" 에 이 주소를 등록해야 인증이 통과됨
 const BASE_URL = 'http://localhost';
 
-export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, style }: NaverWebMapProps) {
+export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, style }: NaverWebMapProps) {
   const webViewRef = useRef<WebView>(null);
   // 처음 한 번만 만들기 (다시 만들면 WebView 가 새로고침됨)
   const [html] = useState(() => buildNaverMapHtml(CLIENT_ID, initialCamera));
@@ -34,6 +34,17 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
     );
   }, [isReady, myLocation, follow]);
 
+  // 사진 핀 목록이 바뀌면 지도에 다시 그림
+  useEffect(() => {
+    if (!isReady) {
+      return;
+    }
+    const message = { type: 'photoPins', pins: photoPins ?? [] };
+    webViewRef.current?.injectJavaScript(
+      `window.__fromApp && window.__fromApp(${JSON.stringify(message)}); true;`,
+    );
+  }, [isReady, photoPins]);
+
   const handleMessage = (event: WebViewMessageEvent) => {
     const message = parseMapMessage(event.nativeEvent.data);
     switch (message?.type) {
@@ -42,6 +53,9 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
         break;
       case 'userGesture':
         onUserGesture?.();
+        break;
+      case 'photoPinPress':
+        onPhotoPinPress?.((message as { id: number }).id);
         break;
       case 'authFailure':
       case 'loadError':

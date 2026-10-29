@@ -7,7 +7,7 @@ import {
   type MapError,
   type NaverWebMapProps,
 } from './naverMapCommon';
-import { MY_LOCATION_COLOR, naverMapScriptUrl } from './naverMapHtml';
+import { MY_LOCATION_COLOR, PHOTO_PIN_ANCHOR, PHOTO_PIN_CSS, naverMapScriptUrl } from './naverMapHtml';
 
 // 웹(npx expo start --web)용. react-native-webview 가 웹을 지원하지 않아서, 네이버 지도를 이 페이지에 직접 띄움
 // (iframe 으로 띄우면 페이지 주소가 about:srcdoc 이 되어 네이버 인증이 통과되지 않음)
@@ -20,6 +20,17 @@ type NaverWindow = Window & {
   navermap_authFailure?: () => void;
 };
 const naverWindow = window as NaverWindow;
+
+// 사진 핀 마커 스타일 (앱은 WebView HTML 안에 같은 CSS 가 들어 있음)
+function ensurePhotoPinStyle() {
+  if (document.getElementById('photo-pin-style')) {
+    return;
+  }
+  const style = document.createElement('style');
+  style.id = 'photo-pin-style';
+  style.textContent = PHOTO_PIN_CSS;
+  document.head.appendChild(style);
+}
 
 // 지도 SDK 스크립트는 페이지에 한 번만 넣음 (지도 탭을 다시 열어도 재사용)
 let scriptPromise: Promise<void> | null = null;
@@ -46,11 +57,12 @@ function loadNaverMaps(clientId: string): Promise<void> {
   return scriptPromise;
 }
 
-export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, style }: NaverWebMapProps) {
+export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, style }: NaverWebMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<NaverMaps>(null);
   const myMarkerRef = useRef<NaverMaps>(null);
   const myCircleRef = useRef<NaverMaps>(null);
+  const photoMarkersRef = useRef<NaverMaps[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<MapError | null>(CLIENT_ID ? null : 'missingClientId');
 
@@ -58,6 +70,8 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
   const initialCameraRef = useRef(initialCamera);
   const onUserGestureRef = useRef(onUserGesture);
   onUserGestureRef.current = onUserGesture;
+  const onPhotoPinPressRef = useRef(onPhotoPinPress);
+  onPhotoPinPressRef.current = onPhotoPinPress;
 
   // 지도 생성
   useEffect(() => {
@@ -72,6 +86,7 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       }
     };
 
+    ensurePhotoPinStyle();
     loadNaverMaps(CLIENT_ID)
       .then(() => {
         const maps = naverWindow.naver?.maps;
@@ -107,6 +122,7 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       mapRef.current = null;
       myMarkerRef.current = null;
       myCircleRef.current = null;
+      photoMarkersRef.current = [];
     };
   }, []);
 
@@ -147,6 +163,31 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       map.panTo(position);
     }
   }, [isReady, myLocation, follow]);
+
+  // 사진 핀: 목록이 바뀔 때마다 전부 지우고 다시 그림
+  useEffect(() => {
+    const maps = naverWindow.naver?.maps;
+    const map = mapRef.current;
+    if (!isReady || !maps || !map) {
+      return;
+    }
+    photoMarkersRef.current.forEach((marker) => marker.setMap(null));
+    photoMarkersRef.current = (photoPins ?? []).map((pin) => {
+      const element = document.createElement('div');
+      element.className = 'pin';
+      const image = document.createElement('img');
+      image.src = pin.imageUrl;
+      element.appendChild(image);
+      const marker = new maps.Marker({
+        map,
+        position: new maps.LatLng(pin.latitude, pin.longitude),
+        icon: { content: element, anchor: new maps.Point(PHOTO_PIN_ANCHOR.x, PHOTO_PIN_ANCHOR.y) },
+        zIndex: 50,
+      });
+      maps.Event.addListener(marker, 'click', () => onPhotoPinPressRef.current?.(pin.id));
+      return marker;
+    });
+  }, [isReady, photoPins]);
 
   if (error === 'missingClientId') {
     return <MapErrorView style={style} message={ERROR_MESSAGES[error]} />;
