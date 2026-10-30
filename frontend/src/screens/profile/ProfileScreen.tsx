@@ -65,7 +65,10 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'ProfileHome'>)
       ))}
 
       <View style={styles.menu}>
+        {/* 관리자 메뉴는 ADMIN 계정에만 보인다. 실제 권한은 서버가 /admin/** 에서 검사 */}
+        {me.data?.role === 'ADMIN' ? <Menu icon="shield-account-outline" title="관리자" body="신고 처리, 회원·상품·주문 관리" onPress={() => navigation.navigate('AdminHome')} /> : null}
         <Menu icon="file-document-outline" title="내가 쓴 글" body="커뮤니티에 남긴 글을 모아봐요" onPress={() => navigation.navigate('MyPosts')} />
+        <Menu icon="account-cancel-outline" title="차단한 사용자" body="차단 목록을 확인하고 해제해요" onPress={() => navigation.navigate('BlockedUsers')} />
         <Menu icon="calendar-check-outline" title="산책 기록" body="산책 기록 기능을 준비하고 있어요" />
         <Menu icon="logout" title="로그아웃" body="이 기기에서 로그아웃해요" onPress={() => authService.logout()} />
       </View>

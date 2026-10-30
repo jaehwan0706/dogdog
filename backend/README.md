@@ -39,7 +39,7 @@ CLI 로 돌리고 싶으면: `npx newman run postman/dangsanchaek.postman_collec
 |---|---|---|
 | `app.oauth.mock-enabled` | `true` | 소셜 토큰 대신 `mock:{소셜ID}:{이메일}` 허용 → 카카오/구글/네이버/Apple 키 없이 테스트 |
 | `app.payment.mode` | `mock` | 토스 호출 없이 결제 승인 (`paymentKey` 가 `fail` 로 시작하면 실패) |
-| `app.admin.emails` | `admin@dangsanchaek.dev` | 이 이메일로 가입하면 ADMIN (상품 등록 가능) |
+| `app.admin.emails` | `admin@dangsanchaek.dev` | 이 이메일로 가입하면 ADMIN (상품·주문·신고·회원 관리). 앱 마이페이지에 관리자 메뉴가 보임 |
 
 ## 3. 인증 방식
 - 로그인/가입 응답: `accessToken`(JWT, 30분) + `refreshToken`(14일, 1회용·사용 시 새로 발급)
@@ -81,7 +81,13 @@ CLI 로 돌리고 싶으면: `npx newman run postman/dangsanchaek.postman_collec
 | 주문 | `POST /orders` | 주문 생성 → 재고 확보, `PENDING_PAYMENT`. `items`(바로구매) 또는 `cartItemIds`(장바구니) 중 하나 |
 | | `GET /orders` · `GET /orders/{orderNo}` | 내 주문 목록/상세 |
 | | `POST /orders/{orderNo}/payments/confirm` | 결제 승인 `{paymentKey, amount}` (서버 금액과 다르면 거부) → `PAID` |
-| | `POST /orders/{orderNo}/cancel` | 취소(결제됐으면 PG 취소) + 재고 복구 |
+| | `POST /orders/{orderNo}/cancel` | 취소(결제됐으면 PG 취소) + 재고 복구. 배송 시작(`SHIPPING`) 후에는 불가 |
+| | 👑 `GET /admin/orders?status=` · 👑 `PATCH /admin/orders/{orderNo}/shipping` | 전체 주문 조회, 배송 상태 변경 `{status: SHIPPING|DELIVERED, courier?, trackingNumber?}` |
+| 신고·차단 | `POST /reports` | 신고 `{targetType: POST|COMMENT|USER, targetId, reason: SPAM|ABUSE|SEXUAL|FRAUD|ETC, detail?}` (중복·본인 신고 불가) |
+| | `POST /users/{id}/block` · `DELETE /users/{id}/block` · `GET /users/me/blocks` | 차단/해제/목록. 차단한 사용자의 글·댓글은 목록에서 빠짐 |
+| 관리자 | 👑 `GET /admin/reports?status=` · 👑 `PATCH /admin/reports/{id}` | 신고 목록, 처리 `{action: HIDE|SUSPEND|DISMISS, memo?}` (같은 대상 신고 일괄 처리) |
+| | 👑 `GET /admin/users?status=&keyword=` · 👑 `PATCH /admin/users/{id}/status` | 회원 검색, 이용정지/해제 `{status: SUSPENDED|ACTIVE}` (정지 시 로그인 불가 `USER_SUSPENDED`) |
+| | 👑 `PATCH /admin/posts/{id}/visibility` · 👑 `PATCH /admin/comments/{id}/visibility` | 게시글·댓글 숨김/해제 `{hidden}` |
 
 게시글 `category`: `FREE`(자유) / `WALK_MATE`(산책 친구 모집) / `CARE_SHARE`(케어 품앗이).
 모집글은 `meetAt`(미래 일시)·`maxParticipants` 필수, `placeName/latitude/longitude` 선택.

@@ -28,7 +28,9 @@ export function formatWon(amount: number) {
 
 export const orderStatusLabel: Record<OrderStatus, string> = {
   PENDING_PAYMENT: '결제 대기',
-  PAID: '결제 완료',
+  PAID: '배송 준비중',
+  SHIPPING: '배송중',
+  DELIVERED: '배송 완료',
   CANCELLED: '주문 취소',
 };
 

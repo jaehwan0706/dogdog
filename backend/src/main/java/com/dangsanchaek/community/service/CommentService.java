@@ -10,6 +10,7 @@ import com.dangsanchaek.community.dto.PostDtos.CommentCreateRequest;
 import com.dangsanchaek.community.dto.PostDtos.CommentResponse;
 import com.dangsanchaek.community.repository.CommentRepository;
 import com.dangsanchaek.community.repository.PostRepository;
+import com.dangsanchaek.moderation.repository.UserBlockRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserReader userReader;
+    private final UserBlockRepository userBlockRepository;
 
     @Transactional
     public CommentResponse create(Long userId, Long postId, CommentCreateRequest request) {
@@ -46,13 +49,17 @@ public class CommentService {
     /**
      * 게시글의 전체 댓글을 "최상위 댓글 + replies" 구조로 반환한다.
      * 삭제된 최상위 댓글은 살아있는 답글이 있을 때만 "삭제된 댓글입니다."로 남긴다.
+     * viewer 가 차단한 사용자의 댓글(과 그 답글)은 보여주지 않는다.
      */
     @Transactional(readOnly = true)
-    public List<CommentResponse> getComments(Long postId) {
+    public List<CommentResponse> getComments(Long viewerId, Long postId) {
         if (!postRepository.existsById(postId)) {
             throw new BusinessException(ErrorCode.POST_NOT_FOUND);
         }
-        List<Comment> all = commentRepository.findAllByPostIdOrderByIdAsc(postId);
+        Set<Long> blocked = viewerId == null ? Set.of() : userBlockRepository.findBlockedIds(viewerId);
+        List<Comment> all = commentRepository.findAllByPostIdOrderByIdAsc(postId).stream()
+                .filter(c -> !blocked.contains(c.getAuthor().getId()))
+                .toList();
         Map<Long, List<CommentResponse>> repliesByParent = new LinkedHashMap<>();
         for (Comment c : all) {
             if (c.isReply() && !c.isDeleted()) {

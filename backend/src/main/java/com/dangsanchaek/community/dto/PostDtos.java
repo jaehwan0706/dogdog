@@ -94,6 +94,7 @@ public final class PostDtos {
             int likeCount,
             int commentCount,
             boolean likedByMe,
+            boolean hidden,
             RecruitInfo recruit,
             LocalDateTime createdAt
     ) {
@@ -103,7 +104,7 @@ public final class PostDtos {
             String thumbnail = post.getImageUrls().isEmpty() ? null : post.getImageUrls().getFirst();
             return new PostSummaryResponse(post.getId(), post.getCategory(), post.getTitle(), preview, thumbnail,
                     AuthorResponse.from(post.getAuthor()), post.getLikeCount(), post.getCommentCount(), likedByMe,
-                    RecruitInfo.from(post), post.getCreatedAt());
+                    post.isHidden(), RecruitInfo.from(post), post.getCreatedAt());
         }
     }
 
@@ -119,6 +120,7 @@ public final class PostDtos {
             boolean likedByMe,
             boolean mine,
             boolean participating,
+            boolean hidden,
             RecruitInfo recruit,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
@@ -126,7 +128,7 @@ public final class PostDtos {
         public static PostDetailResponse of(Post post, boolean likedByMe, boolean mine, boolean participating) {
             return new PostDetailResponse(post.getId(), post.getCategory(), post.getTitle(), post.getContent(),
                     List.copyOf(post.getImageUrls()), AuthorResponse.from(post.getAuthor()), post.getLikeCount(),
-                    post.getCommentCount(), likedByMe, mine, participating, RecruitInfo.from(post),
+                    post.getCommentCount(), likedByMe, mine, participating, post.isHidden(), RecruitInfo.from(post),
                     post.getCreatedAt(), post.getUpdatedAt());
         }
     }
@@ -155,6 +157,7 @@ public final class PostDtos {
             String content,
             AuthorResponse author,
             boolean deleted,
+            boolean hidden,
             LocalDateTime createdAt,
             LocalDateTime updatedAt,
             List<CommentResponse> replies
@@ -162,10 +165,14 @@ public final class PostDtos {
         public static CommentResponse of(Comment c, List<CommentResponse> replies) {
             Long parentId = c.getParent() == null ? null : c.getParent().getId();
             if (c.isDeleted()) {
-                return new CommentResponse(c.getId(), parentId, "삭제된 댓글입니다.", null, true,
+                return new CommentResponse(c.getId(), parentId, "삭제된 댓글입니다.", null, true, false,
                         c.getCreatedAt(), c.getUpdatedAt(), replies);
             }
-            return new CommentResponse(c.getId(), parentId, c.getContent(), AuthorResponse.from(c.getAuthor()), false,
+            if (c.isHidden()) {
+                return new CommentResponse(c.getId(), parentId, "관리자에 의해 숨겨진 댓글입니다.", null, false, true,
+                        c.getCreatedAt(), c.getUpdatedAt(), replies);
+            }
+            return new CommentResponse(c.getId(), parentId, c.getContent(), AuthorResponse.from(c.getAuthor()), false, false,
                     c.getCreatedAt(), c.getUpdatedAt(), replies);
         }
     }

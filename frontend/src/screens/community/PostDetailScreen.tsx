@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { communityService } from '../../api/community/communityService';
+import { moderationService } from '../../api/moderation/moderationService';
 import { AppButton } from '../../components/AppButton';
 import { AppCard } from '../../components/AppCard';
 import { AuthorRow, RecruitBadge, categoryLabel } from '../../components/community/PostCard';
@@ -70,6 +71,22 @@ export function PostDetailScreen({ navigation, route }: CommunityScreenProps<'Po
       await comments.reload();
     }) });
 
+  // 작성자 차단: 이후 서버가 이 사용자의 글·댓글을 빼고 내려주므로 목록으로 돌아간다
+  const blockAuthor = () =>
+    confirmAction({
+      title: `${post.data!.author.nickname}님을 차단할까요?`,
+      message: '이 사용자의 글과 댓글이 더 이상 보이지 않아요. 마이페이지에서 해제할 수 있어요.',
+      confirmText: '차단',
+      destructive: true,
+      onConfirm: () => run(async () => {
+        await moderationService.block(post.data!.author.id);
+        navigation.goBack();
+      }),
+    });
+
+  const reportPost = () => navigation.navigate('Report', { targetType: 'POST', targetId: postId, targetLabel: post.data!.title });
+  const reportComment = (comment: Comment) => navigation.navigate('Report', { targetType: 'COMMENT', targetId: comment.id, targetLabel: comment.content });
+
   const data = post.data;
 
   return (
@@ -77,9 +94,24 @@ export function PostDetailScreen({ navigation, route }: CommunityScreenProps<'Po
       <Pressable accessibilityRole="button" accessibilityLabel="게시글 삭제" hitSlop={8} onPress={deletePost}>
         <MaterialCommunityIcons name="trash-can-outline" size={22} color={colors.inkSoft} />
       </Pressable>
+    ) : data ? (
+      <View style={styles.headerActions}>
+        <Pressable accessibilityRole="button" accessibilityLabel="게시글 신고" hitSlop={8} onPress={reportPost}>
+          <MaterialCommunityIcons name="alarm-light-outline" size={22} color={colors.inkSoft} />
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="작성자 차단" hitSlop={8} onPress={blockAuthor}>
+          <MaterialCommunityIcons name="account-cancel-outline" size={22} color={colors.inkSoft} />
+        </Pressable>
+      </View>
     ) : undefined}>
       {!data ? <LoadState loading={post.loading} error={post.error} onRetry={post.reload} /> : (
         <>
+          {data.hidden ? (
+            <View style={styles.hiddenBanner}>
+              <MaterialCommunityIcons name="eye-off-outline" size={18} color={colors.coral} />
+              <Text style={styles.hiddenText}>운영 정책에 따라 숨겨진 글이에요. 다른 사용자에게는 보이지 않아요.</Text>
+            </View>
+          ) : null}
           <AppCard>
             <AuthorRow nickname={data.author.nickname} meta={`${timeAgo(data.createdAt)} · ${categoryLabel[data.category]}`} />
             <Text style={styles.title}>{data.title}</Text>
@@ -105,7 +137,7 @@ export function PostDetailScreen({ navigation, route }: CommunityScreenProps<'Po
 
           <Text style={styles.sectionTitle}>댓글</Text>
           {comments.data && comments.data.length > 0
-            ? comments.data.map((comment) => <CommentItem key={comment.id} comment={comment} myId={myId} onDelete={deleteComment} />)
+            ? comments.data.map((comment) => <CommentItem key={comment.id} comment={comment} myId={myId} onDelete={deleteComment} onReport={reportComment} />)
             : <LoadState loading={comments.loading} error={comments.error} empty emptyText="첫 댓글을 남겨보세요." onRetry={comments.reload} />}
           <View style={styles.commentBox}>
             <TextInput maxLength={500} multiline onChangeText={setCommentInput} placeholder="댓글을 입력하세요" placeholderTextColor={colors.inkFaint} style={styles.commentInput} value={commentInput} />
@@ -119,7 +151,8 @@ export function PostDetailScreen({ navigation, route }: CommunityScreenProps<'Po
   );
 }
 
-function CommentItem({ comment, myId, onDelete, reply = false }: { comment: Comment; myId?: number; onDelete: (id: number) => void; reply?: boolean }) {
+function CommentItem({ comment, myId, onDelete, onReport, reply = false }: { comment: Comment; myId?: number; onDelete: (id: number) => void; onReport: (comment: Comment) => void; reply?: boolean }) {
+  const canReport = !comment.deleted && !comment.hidden && comment.author !== null && comment.author.id !== myId;
   return (
     <View style={reply && styles.reply}>
       <AppCard>
@@ -131,15 +164,23 @@ function CommentItem({ comment, myId, onDelete, reply = false }: { comment: Comm
               <Text style={styles.commentDeleteText}>삭제</Text>
             </Pressable>
           ) : null}
+          {canReport ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="댓글 신고" hitSlop={8} onPress={() => onReport(comment)} style={styles.commentDelete}>
+              <Text style={styles.commentDeleteText}>신고</Text>
+            </Pressable>
+          ) : null}
         </View>
-        <Text style={[styles.commentBody, comment.deleted && styles.commentDeleted]}>{comment.content}</Text>
+        <Text style={[styles.commentBody, (comment.deleted || comment.hidden) && styles.commentDeleted]}>{comment.content}</Text>
       </AppCard>
-      {comment.replies.map((item) => <CommentItem key={item.id} comment={item} myId={myId} onDelete={onDelete} reply />)}
+      {comment.replies.map((item) => <CommentItem key={item.id} comment={item} myId={myId} onDelete={onDelete} onReport={onReport} reply />)}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  headerActions: { flexDirection: "row", gap: spacing.lg },
+  hiddenBanner: { alignItems: "center", backgroundColor: "#FBE3DA", borderRadius: radius.md, flexDirection: "row", gap: spacing.sm, padding: spacing.md },
+  hiddenText: { color: colors.coral, flex: 1, ...typography.label },
   title: { color: colors.ink, marginTop: spacing.lg, ...typography.title },
   body: { color: colors.ink, marginTop: spacing.sm, ...typography.body },
   image: { backgroundColor: colors.ivorySoft, borderRadius: radius.md, height: 200, marginTop: spacing.md, width: '100%' },

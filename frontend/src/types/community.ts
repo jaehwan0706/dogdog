@@ -25,6 +25,7 @@ export type PostSummary = {
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
+  hidden: boolean; // 관리자 숨김 (작성자 본인에게만 보임)
   recruit: RecruitInfo | null;
   createdAt: string;
 };
@@ -41,6 +42,7 @@ export type PostDetail = {
   likedByMe: boolean;
   mine: boolean;
   participating: boolean;
+  hidden: boolean;
   recruit: RecruitInfo | null;
   createdAt: string;
   updatedAt: string;
@@ -62,6 +64,7 @@ export type Comment = {
   content: string;
   author: Author | null; // 삭제된 댓글은 null
   deleted: boolean;
+  hidden: boolean; // 관리자 숨김: content 가 안내 문구로 바뀌고 author 는 null
   createdAt: string;
   updatedAt: string;
   replies: Comment[];

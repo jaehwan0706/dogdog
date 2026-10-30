@@ -46,6 +46,10 @@ public class Comment extends BaseTimeEntity {
     @Column(nullable = false)
     private boolean deleted;
 
+    /** 관리자 숨김: 내용을 가리고 "관리자에 의해 숨겨진 댓글입니다."로 표시한다. */
+    @Column(nullable = false)
+    private boolean hidden;
+
     public Comment(Post post, User author, Comment parent, String content) {
         this.post = post;
         this.author = author;
@@ -63,6 +67,10 @@ public class Comment extends BaseTimeEntity {
 
     public void changeContent(String content) {
         this.content = content;
+    }
+
+    public void changeHidden(boolean hidden) {
+        this.hidden = hidden;
     }
 
     public void delete() {

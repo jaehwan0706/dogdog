@@ -28,6 +28,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     Page<Order> findByUserId(Long userId, Pageable pageable);
 
+    /** 관리자 전체 주문 조회 (status 가 null 이면 전체) */
+    @Query("select o from Order o where (:status is null or o.status = :status)")
+    Page<Order> search(OrderStatus status, Pageable pageable);
+
     @Query("select o.id from Order o where o.status = :status and o.createdAt < :before")
     List<Long> findIdsByStatusAndCreatedAtBefore(OrderStatus status, LocalDateTime before);
 }
