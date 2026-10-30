@@ -1,6 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 import { AppButton } from '../components/AppButton';
 import { AppCard } from '../components/AppCard';
 import { Screen } from '../components/Screen';
@@ -10,6 +13,7 @@ import { colors, radius, spacing, typography } from '../theme';
 
 // 반려견 이름은 서버 데이터, 산책 통계·추천·날씨는 산책/코스/날씨 API 가 생기기 전까지 예시 값
 export function HomeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const dogName = useMainDog()?.name ?? '우리 아이';
   const weeklyStats = getWeeklyStats(weekActivity);
   const [selectedDayIndex, setSelectedDayIndex] = useState(4);
@@ -26,7 +30,7 @@ export function HomeScreen() {
         <View style={styles.heroCopy}><Text style={styles.cardLabel}>오늘의 추천 산책</Text><Text style={styles.cardTitle}>동네 한 바퀴, 가볍게</Text><Text style={styles.cardBody}>{withJosa(dogName, '과', '와')} 함께 2.3km를 천천히 걸어보세요.</Text></View>
         <View style={styles.heroPaw}><MaterialCommunityIcons name="paw" size={42} color={colors.orange} /></View>
         <View style={styles.buttonSpacing}>
-          <AppButton label="산책 시작하기" variant="secondary" />
+          <AppButton label="산책 시작하기" variant="secondary" onPress={() => navigation.navigate('Walk')} />
         </View>
       </View>
       <View style={styles.sectionHeader}>

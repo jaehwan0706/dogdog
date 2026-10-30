@@ -21,7 +21,7 @@ const BASE_URL = 'http://localhost';
 type WebViewHandle = { injectJavaScript: (script: string) => void };
 const WebView = RNWebView as ComponentType<ComponentProps<typeof RNWebView> & { ref?: Ref<WebViewHandle> }>;
 
-export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, style }: NaverWebMapProps) {
+export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, fitRoute = false, style }: NaverWebMapProps) {
   const webViewRef = useRef<WebViewHandle>(null);
   // 처음 한 번만 만들기 (다시 만들면 WebView 가 새로고침됨)
   const [html] = useState(() => buildNaverMapHtml(CLIENT_ID, initialCamera));
@@ -49,6 +49,17 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       `window.__fromApp && window.__fromApp(${JSON.stringify(message)}); true;`,
     );
   }, [isReady, photoPins]);
+
+  // 산책 경로가 바뀌면 경로선을 다시 그림 (좌표는 [위도, 경도] 배열로 줄여서 보냄)
+  useEffect(() => {
+    if (!isReady || !route) {
+      return;
+    }
+    const message = { type: 'route', path: route.map((p) => [p.latitude, p.longitude]), fit: fitRoute };
+    webViewRef.current?.injectJavaScript(
+      `window.__fromApp && window.__fromApp(${JSON.stringify(message)}); true;`,
+    );
+  }, [isReady, route, fitRoute]);
 
   const handleMessage = (event: WebViewMessageEvent) => {
     const message = parseMapMessage(event.nativeEvent.data);

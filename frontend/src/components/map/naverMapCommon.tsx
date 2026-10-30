@@ -26,8 +26,14 @@ export type NaverWebMapProps = {
   // 지도에 썸네일로 표시할 사진 핀
   photoPins?: MapPhotoPin[];
   onPhotoPinPress?: (pinId: number) => void;
+  // 산책 경로선 (좌표 순서대로 이음)
+  route?: MapLatLng[];
+  // true 면 경로가 바뀔 때 경로 전체가 보이도록 화면을 맞춤 (산책 결과 화면용)
+  fitRoute?: boolean;
   style?: StyleProp<ViewStyle>;
 };
+
+export type MapLatLng = { latitude: number; longitude: number };
 
 export type MapPhotoPin = { id: number; latitude: number; longitude: number; imageUrl: string };
 

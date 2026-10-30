@@ -12,6 +12,11 @@ export function naverMapScriptUrl(clientId: string) {
 // 내 위치 점 / 오차 원 색
 export const MY_LOCATION_COLOR = '#2F80ED';
 
+// 산책 경로선 (앱·웹 공통)
+export const ROUTE_STYLE = { strokeColor: '#E9903A', strokeWeight: 6, strokeOpacity: 0.9, strokeLineCap: 'round', strokeLineJoin: 'round' };
+// 경로에 화면을 맞출 때 가장자리 여백(px)
+export const ROUTE_FIT_MARGIN = 48;
+
 // 사진 핀 마커: 둥근 썸네일 + 아래 꼬리. 앵커는 꼬리 끝 (앱·웹 공통)
 export const PHOTO_PIN_SIZE = 44;
 export const PHOTO_PIN_BORDER = '#184D3B';
@@ -124,6 +129,21 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
       });
     }
 
+    // 산책 경로: path 는 [[위도, 경도], ...]
+    var routeLine = null;
+    function updateRoute(message) {
+      var path = message.path.map(function (p) { return new naver.maps.LatLng(p[0], p[1]); });
+      if (!routeLine) {
+        routeLine = new naver.maps.Polyline(Object.assign({ map: map, path: path, clickable: false, zIndex: 10 }, ${JSON.stringify(ROUTE_STYLE)}));
+      } else {
+        routeLine.setPath(path);
+      }
+      if (message.fit && path.length > 0) {
+        var m = ${ROUTE_FIT_MARGIN};
+        map.fitBounds(routeLine.getBounds(), { top: m, right: m, bottom: m, left: m });
+      }
+    }
+
     window.__fromApp = function (message) {
       // 인증 실패 시 네이버 SDK 가 naver.maps 를 비우므로 그 뒤 메시지는 무시
       if (!naver.maps) {
@@ -133,6 +153,8 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
         updateMyLocation(message);
       } else if (message.type === 'photoPins') {
         updatePhotoPins(message.pins);
+      } else if (message.type === 'route') {
+        updateRoute(message);
       }
     };
 

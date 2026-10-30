@@ -7,7 +7,7 @@ import {
   type MapError,
   type NaverWebMapProps,
 } from './naverMapCommon';
-import { MY_LOCATION_COLOR, PHOTO_PIN_ANCHOR, PHOTO_PIN_CSS, naverMapScriptUrl } from './naverMapHtml';
+import { MY_LOCATION_COLOR, PHOTO_PIN_ANCHOR, PHOTO_PIN_CSS, ROUTE_FIT_MARGIN, ROUTE_STYLE, naverMapScriptUrl } from './naverMapHtml';
 
 // 웹(npx expo start --web)용. react-native-webview 가 웹을 지원하지 않아서, 네이버 지도를 이 페이지에 직접 띄움
 // (iframe 으로 띄우면 페이지 주소가 about:srcdoc 이 되어 네이버 인증이 통과되지 않음)
@@ -57,12 +57,13 @@ function loadNaverMaps(clientId: string): Promise<void> {
   return scriptPromise;
 }
 
-export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, style }: NaverWebMapProps) {
+export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, fitRoute = false, style }: NaverWebMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<NaverMaps>(null);
   const myMarkerRef = useRef<NaverMaps>(null);
   const myCircleRef = useRef<NaverMaps>(null);
   const photoMarkersRef = useRef<NaverMaps[]>([]);
+  const routeLineRef = useRef<NaverMaps>(null);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<MapError | null>(CLIENT_ID ? null : 'missingClientId');
 
@@ -123,6 +124,7 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       myMarkerRef.current = null;
       myCircleRef.current = null;
       photoMarkersRef.current = [];
+      routeLineRef.current = null;
     };
   }, []);
 
@@ -188,6 +190,25 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       return marker;
     });
   }, [isReady, photoPins]);
+
+  // 산책 경로선
+  useEffect(() => {
+    const maps = naverWindow.naver?.maps;
+    const map = mapRef.current;
+    if (!isReady || !route || !maps || !map) {
+      return;
+    }
+    const path = route.map((p) => new maps.LatLng(p.latitude, p.longitude));
+    if (!routeLineRef.current) {
+      routeLineRef.current = new maps.Polyline({ map, path, clickable: false, zIndex: 10, ...ROUTE_STYLE });
+    } else {
+      routeLineRef.current.setPath(path);
+    }
+    if (fitRoute && path.length > 0) {
+      const m = ROUTE_FIT_MARGIN;
+      map.fitBounds(routeLineRef.current.getBounds(), { top: m, right: m, bottom: m, left: m });
+    }
+  }, [isReady, route, fitRoute]);
 
   if (error === 'missingClientId') {
     return <MapErrorView style={style} message={ERROR_MESSAGES[error]} />;
