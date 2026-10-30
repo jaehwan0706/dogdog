@@ -4,7 +4,8 @@ export type ProductCategory = 'FOOD' | 'SNACK' | 'TOY' | 'WALK' | 'HYGIENE' | 'C
 
 export type ProductStatus = 'ON_SALE' | 'HIDDEN';
 
-export type OrderStatus = 'PENDING_PAYMENT' | 'PAID' | 'CANCELLED';
+// PAID(배송 준비중) → SHIPPING(배송중) → DELIVERED(배송 완료). 배송이 시작되면 구매자 취소 불가
+export type OrderStatus = 'PENDING_PAYMENT' | 'PAID' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED';
 
 export type Product = {
   id: number;
@@ -91,6 +92,10 @@ export type Order = {
   paidAt: string | null;
   cancelledAt: string | null;
   cancelReason: string | null;
+  courier: string | null;
+  trackingNumber: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
   createdAt: string;
 };
 

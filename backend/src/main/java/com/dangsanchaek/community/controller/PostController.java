@@ -127,8 +127,8 @@ public class PostController {
     // ---------------- 댓글 (작성/조회) ----------------
 
     @GetMapping("/posts/{postId}/comments")
-    public List<CommentResponse> comments(@PathVariable Long postId) {
-        return commentService.getComments(postId);
+    public List<CommentResponse> comments(@LoginUser(required = false) Long userId, @PathVariable Long postId) {
+        return commentService.getComments(userId, postId);
     }
 
     @PostMapping("/posts/{postId}/comments")

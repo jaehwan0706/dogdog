@@ -44,7 +44,7 @@ export function OrderListScreen({ navigation }: ShopScreenProps<'OrderList'>) {
 }
 
 export function StatusBadge({ status }: { status: OrderStatus }) {
-  const tone = { PENDING_PAYMENT: styles.pending, PAID: styles.paid, CANCELLED: styles.cancelled }[status];
+  const tone = { PENDING_PAYMENT: styles.pending, PAID: styles.paid, SHIPPING: styles.paid, DELIVERED: styles.paid, CANCELLED: styles.cancelled }[status];
   return <Text style={[styles.badge, tone]}>{orderStatusLabel[status]}</Text>;
 }
 

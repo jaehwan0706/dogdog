@@ -19,4 +19,4 @@ app:
   payment:
     mode: mock
   admin:
-    emails: admin@test.dev
+    emails: admin@test.dev,admin-mod@test.dev

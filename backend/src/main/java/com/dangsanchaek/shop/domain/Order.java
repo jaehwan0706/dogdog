@@ -87,6 +87,19 @@ public class Order extends BaseTimeEntity {
     @Column(name = "cancel_reason", length = 200)
     private String cancelReason;
 
+    // ---- 배송 ----
+    @Column(length = 50)
+    private String courier;
+
+    @Column(name = "tracking_number", length = 50)
+    private String trackingNumber;
+
+    @Column(name = "shipped_at")
+    private LocalDateTime shippedAt;
+
+    @Column(name = "delivered_at")
+    private LocalDateTime deliveredAt;
+
     @BatchSize(size = 100)
     @OrderBy("id asc")
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -123,6 +136,20 @@ public class Order extends BaseTimeEntity {
         this.paymentKey = paymentKey;
         this.paymentMethod = paymentMethod;
         this.paidAt = paidAt;
+    }
+
+    /** 결제 완료(PAID) → 배송중. 택배사·송장번호는 선택 */
+    public void markShipping(String courier, String trackingNumber) {
+        this.status = OrderStatus.SHIPPING;
+        this.courier = courier;
+        this.trackingNumber = trackingNumber;
+        this.shippedAt = LocalDateTime.now();
+    }
+
+    /** 배송중(SHIPPING) → 배송 완료 */
+    public void markDelivered() {
+        this.status = OrderStatus.DELIVERED;
+        this.deliveredAt = LocalDateTime.now();
     }
 
     public void cancel(String reason) {

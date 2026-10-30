@@ -28,6 +28,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
     PASSWORD_LOGIN_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "소셜 로그인 계정은 비밀번호를 변경할 수 없습니다."),
     INVALID_CURRENT_PASSWORD(HttpStatus.BAD_REQUEST, "현재 비밀번호가 일치하지 않습니다."),
+    USER_SUSPENDED(HttpStatus.FORBIDDEN, "이용이 정지된 계정입니다. 고객센터로 문의해 주세요."),
 
     // 반려견
     DOG_NOT_FOUND(HttpStatus.NOT_FOUND, "반려견 정보를 찾을 수 없습니다."),
@@ -45,6 +46,15 @@ public enum ErrorCode {
     NOT_PARTICIPATING(HttpStatus.NOT_FOUND, "참여 신청 내역이 없습니다."),
     MAX_PARTICIPANTS_TOO_SMALL(HttpStatus.BAD_REQUEST, "모집 인원은 현재 참여 인원보다 적을 수 없습니다."),
     INVALID_PARENT_COMMENT(HttpStatus.BAD_REQUEST, "답글은 같은 게시글의 최상위 댓글에만 달 수 있습니다."),
+
+    // 신고·차단·관리자
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "신고 내역을 찾을 수 없습니다."),
+    REPORT_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND, "신고 대상을 찾을 수 없습니다."),
+    ALREADY_REPORTED(HttpStatus.CONFLICT, "이미 신고한 대상입니다."),
+    CANNOT_REPORT_SELF(HttpStatus.BAD_REQUEST, "본인은 신고할 수 없습니다."),
+    REPORT_ALREADY_RESOLVED(HttpStatus.CONFLICT, "이미 처리된 신고입니다."),
+    CANNOT_BLOCK_SELF(HttpStatus.BAD_REQUEST, "본인은 차단할 수 없습니다."),
+    CANNOT_SUSPEND_ADMIN(HttpStatus.BAD_REQUEST, "관리자 계정은 이용정지할 수 없습니다."),
 
     // 마켓
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다."),

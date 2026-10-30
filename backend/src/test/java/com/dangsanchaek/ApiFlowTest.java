@@ -321,6 +321,105 @@ class ApiFlowTest {
         call(get("/orders"), user, null).andExpect(jsonPath("$.content", hasSize(1)));
     }
 
+    // ======================== 신고·차단·관리자 ========================
+
+    @Test
+    void 신고_차단_관리자숨김_이용정지_배송() throws Exception {
+        String admin = signupAs("admin-mod@test.dev");
+        String writerEmail = uniqueEmail();
+        String writerRes = call(post("/auth/signup"), null, """
+                {"email":"%s","password":"walk1234","nickname":"%s"}""".formatted(writerEmail, uniqueNick()))
+                .andReturn().getResponse().getContentAsString();
+        String writer = JsonPath.read(writerRes, "$.accessToken");
+        Integer writerId = JsonPath.read(writerRes, "$.user.id");
+        String reporter = signup();
+
+        Integer postId = JsonPath.read(call(post("/posts"), writer, """
+                {"category":"FREE","title":"신고 테스트","content":"광고 글입니다"}""")
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id");
+        call(post("/posts/" + postId + "/comments"), writer, "{\"content\":\"댓글\"}").andExpect(status().isCreated());
+
+        // 신고: 중복·본인·없는 대상 불가
+        String report = "{\"targetType\":\"POST\",\"targetId\":" + postId + ",\"reason\":\"SPAM\",\"detail\":\"광고\"}";
+        call(post("/reports"), reporter, report).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("PENDING"));
+        call(post("/reports"), reporter, report).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ALREADY_REPORTED"));
+        call(post("/reports"), writer, report).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CANNOT_REPORT_SELF"));
+        call(post("/reports"), reporter, "{\"targetType\":\"POST\",\"targetId\":999999,\"reason\":\"SPAM\"}")
+                .andExpect(status().isNotFound());
+
+        // 차단: 차단한 사용자의 글·댓글이 안 보이고, 해제하면 다시 보인다
+        String mine = "$.content[?(@.id == " + postId + ")]";
+        call(post("/users/" + writerId + "/block"), reporter, null).andExpect(status().isNoContent());
+        call(post("/users/" + writerId + "/block"), reporter, null).andExpect(status().isNoContent());
+        call(get("/posts"), reporter, null).andExpect(jsonPath(mine, hasSize(0)));
+        call(get("/posts"), null, null).andExpect(jsonPath(mine, hasSize(1)));
+        call(get("/posts/" + postId + "/comments"), reporter, null).andExpect(jsonPath("$", hasSize(0)));
+        call(get("/users/me/blocks"), reporter, null).andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].userId").value(writerId));
+        call(delete("/users/" + writerId + "/block"), reporter, null).andExpect(status().isNoContent());
+        call(get("/posts"), reporter, null).andExpect(jsonPath(mine, hasSize(1)));
+
+        // 관리자 API 는 ADMIN 만
+        call(get("/admin/reports"), reporter, null).andExpect(status().isForbidden());
+
+        // 신고 처리: 게시글 숨김 → 목록 제외, 작성자만 상세 조회
+        String reports = call(get("/admin/reports?status=PENDING"), admin, null).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        Integer reportId = JsonPath.read(reports, "$.content[0].id");
+        call(patch("/admin/reports/" + reportId), admin, "{\"action\":\"HIDE\",\"memo\":\"광고\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTION_TAKEN"))
+                .andExpect(jsonPath("$.target.hidden").value(true));
+        call(patch("/admin/reports/" + reportId), admin, "{\"action\":\"DISMISS\"}").andExpect(status().isConflict());
+        call(get("/posts"), null, null).andExpect(jsonPath(mine, hasSize(0)));
+        call(get("/posts/" + postId), reporter, null).andExpect(status().isNotFound());
+        call(get("/posts/" + postId), writer, null).andExpect(status().isOk()).andExpect(jsonPath("$.hidden").value(true));
+        call(patch("/admin/posts/" + postId + "/visibility"), admin, "{\"hidden\":false}").andExpect(status().isNoContent());
+        call(get("/posts/" + postId), reporter, null).andExpect(status().isOk());
+
+        // 사용자 신고 → 이용정지: 로그인·글쓰기 불가, 해제하면 다시 로그인
+        call(post("/reports"), reporter, "{\"targetType\":\"USER\",\"targetId\":" + writerId + ",\"reason\":\"ABUSE\"}")
+                .andExpect(status().isCreated());
+        Integer userReportId = JsonPath.read(call(get("/admin/reports?status=PENDING"), admin, null)
+                .andReturn().getResponse().getContentAsString(), "$.content[0].id");
+        call(patch("/admin/reports/" + userReportId), admin, "{\"action\":\"HIDE\"}").andExpect(status().isBadRequest());
+        call(patch("/admin/reports/" + userReportId), admin, "{\"action\":\"SUSPEND\"}").andExpect(status().isOk());
+        String login = "{\"email\":\"%s\",\"password\":\"walk1234\"}".formatted(writerEmail);
+        call(post("/auth/login"), null, login).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("USER_SUSPENDED"));
+        call(post("/posts"), writer, "{\"category\":\"FREE\",\"title\":\"t\",\"content\":\"c\"}")
+                .andExpect(status().isNotFound());
+        call(get("/admin/users?status=SUSPENDED"), admin, null).andExpect(jsonPath("$.content[?(@.id == " + writerId + ")]", hasSize(1)));
+        call(patch("/admin/users/" + writerId + "/status"), admin, "{\"status\":\"ACTIVE\"}")
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+        call(post("/auth/login"), null, login).andExpect(status().isOk());
+
+        // 배송: 결제 완료 → 배송중(송장) → 배송 완료, 배송 시작 후에는 구매자 취소 불가
+        Integer productId = JsonPath.read(call(post("/admin/products"), admin, """
+                {"name":"배송 테스트 간식","category":"SNACK","price":5000,"stock":10}""")
+                .andReturn().getResponse().getContentAsString(), "$.id");
+        String orderNo = JsonPath.read(call(post("/orders"), reporter, "{\"items\":[{\"productId\":" + productId
+                + ",\"quantity\":1}],\"receiverName\":\"홍길동\",\"receiverPhone\":\"010-1234-5678\","
+                + "\"zipCode\":\"04524\",\"address\":\"서울시 중구\"}")
+                .andReturn().getResponse().getContentAsString(), "$.orderNo");
+        String shipping = "{\"status\":\"SHIPPING\",\"courier\":\"CJ대한통운\",\"trackingNumber\":\"123456789\"}";
+        call(patch("/admin/orders/" + orderNo + "/shipping"), admin, shipping).andExpect(status().isConflict());
+        call(post("/orders/" + orderNo + "/payments/confirm"), reporter, "{\"paymentKey\":\"pk_test\",\"amount\":5000}")
+                .andExpect(status().isOk());
+        call(get("/admin/orders?status=PAID"), admin, null).andExpect(status().isOk());
+        call(patch("/admin/orders/" + orderNo + "/shipping"), reporter, shipping).andExpect(status().isForbidden());
+        call(patch("/admin/orders/" + orderNo + "/shipping"), admin, shipping).andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SHIPPING"))
+                .andExpect(jsonPath("$.trackingNumber").value("123456789"));
+        call(post("/orders/" + orderNo + "/cancel"), reporter, "{}").andExpect(status().isConflict());
+        call(patch("/admin/orders/" + orderNo + "/shipping"), admin, "{\"status\":\"DELIVERED\"}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("DELIVERED"));
+        call(get("/orders/" + orderNo), reporter, null).andExpect(jsonPath("$.deliveredAt").isNotEmpty());
+    }
+
     // ======================== helpers ========================
 
     private ResultActions call(MockHttpServletRequestBuilder req, String token, String body) throws Exception {

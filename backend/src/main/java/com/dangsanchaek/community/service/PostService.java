@@ -63,7 +63,7 @@ public class PostService {
     public PageResponse<PostSummaryResponse> search(Long viewerId, PostCategory category, RecruitStatus recruitStatus,
                                                     String keyword, Pageable pageable) {
         String kw = keyword == null || keyword.isBlank() ? null : keyword.strip();
-        Page<Post> page = postRepository.search(category, recruitStatus, kw, pageable);
+        Page<Post> page = postRepository.search(viewerId, category, recruitStatus, kw, pageable);
         return toSummaryPage(viewerId, page);
     }
 
@@ -75,6 +75,8 @@ public class PostService {
     @Transactional(readOnly = true)
     public PostDetailResponse get(Long viewerId, Long postId) {
         Post post = postRepository.findWithAuthorById(postId)
+                // 관리자가 숨긴 글은 작성자 본인만 볼 수 있다
+                .filter(p -> !p.isHidden() || p.isWrittenBy(viewerId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
         if (viewerId == null) {
             return PostDetailResponse.of(post, false, false, false);

@@ -66,6 +66,9 @@ export function OrderDetailScreen({ navigation, route }: ShopScreenProps<'OrderD
               <View style={styles.divider} />
               <SummaryRow label="결제 금액" value={formatWon(order.totalAmount)} strong />
               {order.paidAt ? <SummaryRow label="결제 일시" value={formatDateTime(order.paidAt)} /> : null}
+              {order.shippedAt ? <SummaryRow label="발송 일시" value={formatDateTime(order.shippedAt)} /> : null}
+              {order.courier || order.trackingNumber ? <SummaryRow label="송장" value={[order.courier, order.trackingNumber].filter(Boolean).join(" ")} /> : null}
+              {order.deliveredAt ? <SummaryRow label="배송 완료" value={formatDateTime(order.deliveredAt)} /> : null}
               {order.cancelledAt ? <SummaryRow label="취소 일시" value={formatDateTime(order.cancelledAt)} /> : null}
               {order.cancelReason ? <SummaryRow label="취소 사유" value={order.cancelReason} /> : null}
             </View>
@@ -83,7 +86,8 @@ export function OrderDetailScreen({ navigation, route }: ShopScreenProps<'OrderD
           </AppCard>
 
           {justPaid ? <AppButton label="쇼핑 계속하기" onPress={() => navigation.popToTop()} /> : null}
-          {order.status !== 'CANCELLED' ? (
+          {/* 배송이 시작되면 취소 불가 (서버 규칙과 동일) */}
+          {order.status === 'PENDING_PAYMENT' || order.status === 'PAID' ? (
             <AppButton label={cancelling ? '취소 중…' : '주문 취소'} variant="ghost" disabled={cancelling} onPress={cancel} />
           ) : null}
         </>
