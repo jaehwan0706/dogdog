@@ -95,6 +95,10 @@ public class Post extends BaseTimeEntity {
     @Column(name = "comment_count", nullable = false)
     private int commentCount;
 
+    /** 관리자 숨김: 목록에서 빠지고 작성자 본인만 상세를 볼 수 있다. */
+    @Column(nullable = false)
+    private boolean hidden;
+
     @Builder
     private Post(User author, PostCategory category, String title, String content, List<String> imageUrls,
                  LocalDateTime meetAt, String placeName, Double latitude, Double longitude, Integer maxParticipants) {
@@ -124,6 +128,8 @@ public class Post extends BaseTimeEntity {
     public boolean isFull() {
         return maxParticipants != null && participantCount >= maxParticipants;
     }
+
+    public void changeHidden(boolean hidden) { this.hidden = hidden; }
 
     public void changeTitle(String title) { this.title = title; }
 

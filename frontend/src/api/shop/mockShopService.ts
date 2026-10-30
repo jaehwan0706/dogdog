@@ -127,6 +127,10 @@ export const mockShopService: ShopService = {
       paidAt: null,
       cancelledAt: null,
       cancelReason: null,
+      courier: null,
+      trackingNumber: null,
+      shippedAt: null,
+      deliveredAt: null,
       createdAt: now(),
     };
     orders.unshift(order);
@@ -142,7 +146,7 @@ export const mockShopService: ShopService = {
   },
   async cancelOrder(orderNo, reason) {
     const order = findOrder(orderNo);
-    if (order.status === 'CANCELLED') throw new ApiError(409, 'INVALID_ORDER_STATUS', '현재 주문 상태에서는 처리할 수 없습니다.');
+    if (order.status !== 'PENDING_PAYMENT' && order.status !== 'PAID') throw new ApiError(409, 'INVALID_ORDER_STATUS', '현재 주문 상태에서는 처리할 수 없습니다.');
     order.items.forEach((item) => {
       const product = products.find((p) => p.id === item.productId);
       if (product) setStock(product, product.stock + item.quantity);

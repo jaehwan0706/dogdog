@@ -16,15 +16,20 @@ import java.util.Optional;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
 
+    /** 목록: 관리자 숨김 글과 viewer 가 차단한 사용자의 글은 제외 (viewerId 가 null 이면 비로그인) */
     @EntityGraph(attributePaths = "author")
     @Query("""
             select p from Post p
-            where (:category is null or p.category = :category)
+            where p.hidden = false
+              and (:viewerId is null or p.author.id not in
+                   (select b.blockedId from UserBlock b where b.blockerId = :viewerId))
+              and (:category is null or p.category = :category)
               and (:recruitStatus is null or p.recruitStatus = :recruitStatus)
               and (:keyword is null or p.title like concat('%', :keyword, '%')
                                     or p.content like concat('%', :keyword, '%'))
             """)
-    Page<Post> search(PostCategory category, RecruitStatus recruitStatus, String keyword, Pageable pageable);
+    Page<Post> search(Long viewerId, PostCategory category, RecruitStatus recruitStatus, String keyword,
+                      Pageable pageable);
 
     @EntityGraph(attributePaths = "author")
     Page<Post> findByAuthorId(Long authorId, Pageable pageable);

@@ -50,9 +50,13 @@ public class AuthService {
     @Transactional
     public TokenResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(normalizeEmail(request.email()))
-                .filter(u -> u.isActive() && u.isLocal())
+                .filter(u -> (u.isActive() || u.isSuspended()) && u.isLocal())
                 .filter(u -> passwordEncoder.matches(request.password(), u.getPasswordHash()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
+        // 비밀번호가 맞을 때만 정지 사실을 알려준다 (계정 존재 여부 노출 방지)
+        if (user.isSuspended()) {
+            throw new BusinessException(ErrorCode.USER_SUSPENDED);
+        }
         return tokenService.issue(user, false);
     }
 
@@ -65,7 +69,10 @@ public class AuthService {
         SocialProfile profile = socialVerifiers.verify(provider, request.token());
 
         return userRepository.findByProviderAndProviderId(provider, profile.providerId())
-                .map(user -> tokenService.issue(user, false))
+                .map(user -> {
+                    if (user.isSuspended()) throw new BusinessException(ErrorCode.USER_SUSPENDED);
+                    return tokenService.issue(user, false);
+                })
                 .orElseGet(() -> tokenService.issue(registerSocialUser(provider, profile, request.nickname()), true));
     }
 

@@ -12,6 +12,7 @@ export function PostCard({ post, onPress }: { post: PostSummary; onPress: () => 
     <Pressable accessibilityRole="button" onPress={onPress}>
       <AppCard>
         <AuthorRow nickname={post.author.nickname} meta={`${timeAgo(post.createdAt)} · ${categoryLabel[post.category]}`} />
+        {post.hidden ? <Text style={styles.hidden}>운영 정책에 따라 숨겨진 글</Text> : null}
         <Text style={styles.title}>{post.title}</Text>
         <Text style={styles.body} numberOfLines={3}>{post.contentPreview}</Text>
         {post.recruit ? <RecruitBadge recruit={post.recruit} /> : null}
@@ -67,6 +68,7 @@ const styles = StyleSheet.create({
   avatar: { alignItems: 'center', backgroundColor: colors.forest, borderRadius: 99, height: 34, justifyContent: 'center', width: 34 },
   author: { color: colors.ink, ...typography.label },
   meta: { color: colors.inkFaint, marginTop: 2, ...typography.caption },
+  hidden: { color: colors.coral, marginTop: spacing.md, ...typography.label },
   title: { color: colors.ink, marginTop: spacing.lg, ...typography.heading },
   body: { color: colors.inkSoft, marginTop: spacing.xs, ...typography.body },
   image: { backgroundColor: colors.ivorySoft, borderRadius: radius.md, height: 170, marginTop: spacing.lg, width: '100%' },

@@ -92,6 +92,23 @@ public class User extends BaseTimeEntity {
         return provider == AuthProvider.LOCAL;
     }
 
+    public boolean isAdmin() {
+        return role == UserRole.ADMIN;
+    }
+
+    public boolean isSuspended() {
+        return status == UserStatus.SUSPENDED;
+    }
+
+    /** 관리자 이용정지/해제. 탈퇴 회원에는 적용하지 않는다(서비스에서 검사). */
+    public void suspend() {
+        this.status = UserStatus.SUSPENDED;
+    }
+
+    public void unsuspend() {
+        this.status = UserStatus.ACTIVE;
+    }
+
     public void changeNickname(String nickname) {
         this.nickname = nickname;
     }

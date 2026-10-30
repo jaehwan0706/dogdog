@@ -75,7 +75,7 @@ const mockCommunityService: CommunityService = {
   async createPost(input) {
     const now = new Date().toISOString();
     const recruit = input.category === 'FREE' ? null : { meetAt: input.meetAt!, placeName: input.placeName ?? null, latitude: null, longitude: null, maxParticipants: input.maxParticipants!, participantCount: 0, status: 'OPEN' as const };
-    const post: MockPost = { id: mockId++, category: input.category, title: input.title, content: input.content, imageUrls: [], author: me(), likeCount: 0, commentCount: 0, likedByMe: false, mine: true, participating: false, recruit, createdAt: now, updatedAt: now, comments: [] };
+    const post: MockPost = { id: mockId++, category: input.category, title: input.title, content: input.content, imageUrls: [], author: me(), likeCount: 0, commentCount: 0, likedByMe: false, mine: true, participating: false, hidden: false, recruit, createdAt: now, updatedAt: now, comments: [] };
     mockPosts.unshift(post);
     return mockCommunityService.getPost(post.id);
   },
@@ -106,7 +106,7 @@ const mockCommunityService: CommunityService = {
   async createComment(postId, content) {
     const post = findPost(postId);
     const now = new Date().toISOString();
-    const comment: Comment = { id: mockId++, parentId: null, content, author: me(), deleted: false, createdAt: now, updatedAt: now, replies: [] };
+    const comment: Comment = { id: mockId++, parentId: null, content, author: me(), deleted: false, hidden: false, createdAt: now, updatedAt: now, replies: [] };
     post.comments.push(comment);
     post.commentCount += 1;
     return comment;

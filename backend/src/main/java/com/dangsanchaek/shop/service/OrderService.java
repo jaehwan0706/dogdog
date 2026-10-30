@@ -12,6 +12,7 @@ import com.dangsanchaek.shop.domain.Product;
 import com.dangsanchaek.shop.dto.ShopDtos.OrderCreateRequest;
 import com.dangsanchaek.shop.dto.ShopDtos.OrderLineRequest;
 import com.dangsanchaek.shop.dto.ShopDtos.OrderResponse;
+import com.dangsanchaek.shop.dto.ShopDtos.ShippingUpdateRequest;
 import com.dangsanchaek.shop.repository.CartItemRepository;
 import com.dangsanchaek.shop.repository.OrderRepository;
 import com.dangsanchaek.shop.repository.ProductRepository;
@@ -138,11 +139,42 @@ public class OrderService {
         switch (order.getStatus()) {
             case PENDING_PAYMENT -> { /* 결제 전: PG 호출 없음 */ }
             case PAID -> paymentGateway.cancel(order.getPaymentKey(), cancelReason);
-            case CANCELLED -> throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+            // 배송이 시작된 주문은 구매자가 직접 취소할 수 없다 (반품은 별도 문의)
+            case SHIPPING, DELIVERED, CANCELLED -> throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
         }
         cancelAndRestoreStock(order, cancelReason);
         orderRepository.flush();
         return OrderResponse.from(order);
+    }
+
+    // ======================== 관리자 ========================
+
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> searchAll(OrderStatus status, Pageable pageable) {
+        return PageResponse.of(orderRepository.search(status, pageable), OrderResponse::from);
+    }
+
+    @Transactional
+    public OrderResponse updateShipping(String orderNo, ShippingUpdateRequest request) {
+        Order order = orderRepository.findByOrderNoForUpdate(orderNo)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        switch (request.status()) {
+            case SHIPPING -> {
+                if (order.getStatus() != OrderStatus.PAID) throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+                order.markShipping(blankToNull(request.courier()), blankToNull(request.trackingNumber()));
+            }
+            case DELIVERED -> {
+                if (order.getStatus() != OrderStatus.SHIPPING) throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+                order.markDelivered();
+            }
+            default -> throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+        orderRepository.flush();
+        return OrderResponse.from(order);
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.strip();
     }
 
     /** 결제 시간 초과 주문 자동 취소 (PendingOrderExpirer 가 호출) */

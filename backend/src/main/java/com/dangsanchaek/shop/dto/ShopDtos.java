@@ -131,6 +131,14 @@ public final class ShopDtos {
     ) {
     }
 
+    /** 관리자 배송 상태 변경: PAID → SHIPPING(택배사·송장번호 선택) → DELIVERED */
+    public record ShippingUpdateRequest(
+            @NotNull(message = "status 는 SHIPPING 또는 DELIVERED 입니다.") OrderStatus status,
+            @Size(max = 50) String courier,
+            @Size(max = 50) String trackingNumber
+    ) {
+    }
+
     public record OrderCancelRequest(@Size(max = 200) String reason) {
     }
 
@@ -157,6 +165,10 @@ public final class ShopDtos {
             LocalDateTime paidAt,
             LocalDateTime cancelledAt,
             String cancelReason,
+            String courier,
+            String trackingNumber,
+            LocalDateTime shippedAt,
+            LocalDateTime deliveredAt,
             LocalDateTime createdAt
     ) {
         public static OrderResponse from(Order o) {
@@ -164,7 +176,8 @@ public final class ShopDtos {
                     o.getItems().stream().map(OrderItemResponse::from).toList(),
                     o.getReceiverName(), o.getReceiverPhone(), o.getZipCode(), o.getAddress(), o.getAddressDetail(),
                     o.getDeliveryMemo(), o.getPaymentMethod(), o.getPaidAt(), o.getCancelledAt(),
-                    o.getCancelReason(), o.getCreatedAt());
+                    o.getCancelReason(), o.getCourier(), o.getTrackingNumber(), o.getShippedAt(), o.getDeliveredAt(),
+                    o.getCreatedAt());
         }
     }
 }
