@@ -12,9 +12,11 @@
 
 - `POST /auth/login`
 - `POST /dogs`
-- `POST /walks/start`
-- `PATCH /walks/{id}/end`
-- `POST /walks/{id}/points`
+- `POST /walks/start` (`{dogId?}`, 진행 중인 산책이 있으면 409 `WALK_ALREADY_IN_PROGRESS`)
+- `GET /walks/current` (진행 중인 산책 + 경로, 없으면 204)
+- `POST /walks/{id}/points` (`{points: [{seq, latitude, longitude}]}`, 최대 500개, 이미 받은 seq 는 무시 → `{lastSeq}`)
+- `PATCH /walks/{id}/end` (`{points?}` 남은 좌표, 거리·시간은 서버가 계산)
+- `GET /walks/{id}` (요약 + 경로), `DELETE /walks/{id}` (진행 중 취소 / 기록 삭제, 사진 핀은 남음)
 - `POST /photo-pins` (multipart: `image` + `latitude`·`longitude`·`memo?`·`walkId?`)
 - `GET /photo-pins` (내 핀 최신순)
 - `DELETE /photo-pins/{id}`
@@ -25,7 +27,7 @@
 - `GET /posts/{id}`
 - `POST /posts/{id}/comments`
 - `GET /users/me`
-- `GET /users/me/walks`
+- `GET /users/me/walks?from=yyyy-MM-dd&to=yyyy-MM-dd` (종료된 산책 최신순, 생략 시 최근 30일)
 - `GET /users/me/posts`
 - `GET /products`, `GET /products/{id}`
 - `GET /cart`, `POST /cart/items`, `PATCH /cart/items/{id}`, `DELETE /cart/items/{id}`

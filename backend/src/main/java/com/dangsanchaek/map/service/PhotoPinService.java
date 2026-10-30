@@ -10,6 +10,7 @@ import com.dangsanchaek.map.domain.PhotoPin;
 import com.dangsanchaek.map.dto.PhotoPinDtos.PhotoPinCreateRequest;
 import com.dangsanchaek.map.dto.PhotoPinDtos.PhotoPinResponse;
 import com.dangsanchaek.map.repository.PhotoPinRepository;
+import com.dangsanchaek.walk.repository.WalkRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -29,10 +30,14 @@ public class PhotoPinService {
     private final PhotoPinRepository photoPinRepository;
     private final UserReader userReader;
     private final FileStorage fileStorage;
+    private final WalkRepository walkRepository;
 
     @Transactional
     public PhotoPinResponse create(Long userId, PhotoPinCreateRequest request, MultipartFile image) {
         User owner = userReader.getActiveUser(userId);
+        if (request.walkId() != null && !walkRepository.existsByIdAndOwnerId(request.walkId(), userId)) {
+            throw new BusinessException(ErrorCode.WALK_NOT_FOUND);
+        }
         String imageKey = fileStorage.saveImage(IMAGE_DIRECTORY, image);
         // DB 저장이 롤백되면 이미 저장한 파일도 지운다
         afterRollback(() -> fileStorage.delete(imageKey));

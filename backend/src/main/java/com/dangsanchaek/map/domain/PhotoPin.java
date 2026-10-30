@@ -18,7 +18,8 @@ import lombok.NoArgsConstructor;
 
 /**
  * 지도 위 사진 핀. 작성자 본인만 볼 수 있는 비공개 기록이다.
- * walkId 는 산책(walk) 도메인이 생기기 전까지 연관관계 없이 ID 만 보관한다.
+ * walkId 는 산책 중 남긴 핀의 산책 ID (도메인 간 결합을 줄이려고 연관관계 없이 ID 만 보관한다).
+ * 산책 기록을 지우면 DB 가 walk_id 를 NULL 로 바꾸고 핀은 남는다.
  */
 @Getter
 @Entity
