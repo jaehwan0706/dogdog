@@ -3,6 +3,10 @@ spring:
     name: dangsanchaek-server
   profiles:
     active: local
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
   jpa:
     open-in-view: false
     properties:
@@ -28,3 +32,6 @@ app:
     pending-order-ttl: 30m
   admin:
     emails: ${ADMIN_EMAILS:}           # 이 이메일로 회원가입하면 ADMIN 권한
+  storage:
+    local-dir: ${STORAGE_LOCAL_DIR:uploads}   # 업로드 사진 저장 폴더 (서버 실행 위치 기준)
+    url-ttl: 1h                               # 사진 URL(서명) 유효 시간

@@ -34,6 +34,14 @@ public enum ErrorCode {
     DOG_NOT_FOUND(HttpStatus.NOT_FOUND, "반려견 정보를 찾을 수 없습니다."),
     DOG_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "반려견은 최대 10마리까지 등록할 수 있습니다."),
 
+    // 파일 업로드
+    IMAGE_REQUIRED(HttpStatus.BAD_REQUEST, "사진을 첨부해 주세요."),
+    UNSUPPORTED_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "JPG, PNG, WEBP, HEIC 사진만 올릴 수 있습니다."),
+    FILE_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "사진은 10MB 이하만 올릴 수 있습니다."),
+
+    // 사진 핀
+    PHOTO_PIN_NOT_FOUND(HttpStatus.NOT_FOUND, "사진 핀을 찾을 수 없습니다."),
+
     // 커뮤니티
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."),
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),

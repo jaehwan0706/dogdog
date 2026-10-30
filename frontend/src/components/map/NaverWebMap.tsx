@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentProps, type ComponentType, type Ref } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+import { WebView as RNWebView, type WebViewMessageEvent } from 'react-native-webview';
 import {
   CLIENT_ID,
   ERROR_MESSAGES,
@@ -16,8 +16,13 @@ import { buildNaverMapHtml } from './naverMapHtml';
 // 네이버 콘솔 "Web 서비스 URL" 에 이 주소를 등록해야 인증이 통과됨
 const BASE_URL = 'http://localhost';
 
-export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, style }: NaverWebMapProps) {
-  const webViewRef = useRef<WebView>(null);
+// react-native-webview 14 의 공용 타입은 WebView 를 ref 없는 함수 컴포넌트로 선언해 둠
+// (iOS/Android 실제 구현은 forwardRef 라 ref 가 동작함) → 쓰는 메서드만 ref 타입으로 직접 정의
+type WebViewHandle = { injectJavaScript: (script: string) => void };
+const WebView = RNWebView as ComponentType<ComponentProps<typeof RNWebView> & { ref?: Ref<WebViewHandle> }>;
+
+export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, style }: NaverWebMapProps) {
+  const webViewRef = useRef<WebViewHandle>(null);
   // 처음 한 번만 만들기 (다시 만들면 WebView 가 새로고침됨)
   const [html] = useState(() => buildNaverMapHtml(CLIENT_ID, initialCamera));
   const [isReady, setIsReady] = useState(false);
@@ -34,6 +39,17 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
     );
   }, [isReady, myLocation, follow]);
 
+  // 사진 핀 목록이 바뀌면 지도에 다시 그림
+  useEffect(() => {
+    if (!isReady) {
+      return;
+    }
+    const message = { type: 'photoPins', pins: photoPins ?? [] };
+    webViewRef.current?.injectJavaScript(
+      `window.__fromApp && window.__fromApp(${JSON.stringify(message)}); true;`,
+    );
+  }, [isReady, photoPins]);
+
   const handleMessage = (event: WebViewMessageEvent) => {
     const message = parseMapMessage(event.nativeEvent.data);
     switch (message?.type) {
@@ -42,6 +58,9 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
         break;
       case 'userGesture':
         onUserGesture?.();
+        break;
+      case 'photoPinPress':
+        onPhotoPinPress?.((message as { id: number }).id);
         break;
       case 'authFailure':
       case 'loadError':

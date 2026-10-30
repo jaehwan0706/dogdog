@@ -23,8 +23,13 @@ export type NaverWebMapProps = {
   follow: boolean;
   // 사용자가 지도를 직접 끌었을 때
   onUserGesture?: () => void;
+  // 지도에 썸네일로 표시할 사진 핀
+  photoPins?: MapPhotoPin[];
+  onPhotoPinPress?: (pinId: number) => void;
   style?: StyleProp<ViewStyle>;
 };
+
+export type MapPhotoPin = { id: number; latitude: number; longitude: number; imageUrl: string };
 
 // 지도 페이지가 보낸 메시지(JSON 문자열) 해석. 모르는 형식이면 null
 export function parseMapMessage(data: unknown): { type?: string } | null {

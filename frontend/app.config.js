@@ -24,5 +24,14 @@ module.exports = ({ config }) => ({
           '내 주변 산책로와 시설을 보여주고 산책 경로를 기록하려면 위치 권한이 필요해요.',
       },
     ],
+    [
+      // 사진 핀: 카메라 촬영 / 앨범에서 선택
+      'expo-image-picker',
+      {
+        cameraPermission: '산책 중 사진을 찍어 지도에 사진 핀으로 남기려면 카메라 권한이 필요해요.',
+        photosPermission: '앨범의 사진을 지도에 사진 핀으로 남기려면 사진 접근 권한이 필요해요.',
+        microphonePermission: false,
+      },
+    ],
   ],
 });

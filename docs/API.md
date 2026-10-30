@@ -15,8 +15,9 @@
 - `POST /walks/start`
 - `PATCH /walks/{id}/end`
 - `POST /walks/{id}/points`
-- `POST /walks/{id}/photo-pins`
-- `GET /photo-pins`
+- `POST /photo-pins` (multipart: `image` + `latitude`·`longitude`·`memo?`·`walkId?`)
+- `GET /photo-pins` (내 핀 최신순)
+- `DELETE /photo-pins/{id}`
 - `GET /facilities`
 - `GET /courses/recommend`
 - `GET /posts`
@@ -33,7 +34,7 @@
 - `POST /reports`, `POST/DELETE /users/{id}/block`, `GET /users/me/blocks`
 - 관리자(ADMIN): `/admin/reports`, `/admin/users`, `/admin/posts|comments/{id}/visibility`, `/admin/products`, `/admin/orders`
 
-인증·반려견·커뮤니티·내 정보는 각각 `src/api/auth/authService.ts`, `src/api/dog/dogService.ts`, `src/api/community/communityService.ts`, `src/api/user/userService.ts` 를 사용한다. 로그인 세션은 `src/store/authStore.ts`(현재 메모리 저장, 앱 재시작 시 재로그인), 내 반려견 목록은 `src/store/dogStore.ts` 가 들고 있고, 반려견이 없으면 App 이 온보딩 화면을 띄운다. API 요청이 401 이면 `client.ts` 가 `/auth/refresh` 로 한 번 재발급 후 재시도한다. 산책·사진 핀·시설·코스 API 는 백엔드에 아직 없어 홈의 산책 통계·지도는 예시 값이다.
+인증·반려견·커뮤니티·내 정보는 각각 `src/api/auth/authService.ts`, `src/api/dog/dogService.ts`, `src/api/community/communityService.ts`, `src/api/user/userService.ts` 를 사용한다. 로그인 세션은 `src/store/authStore.ts`(현재 메모리 저장, 앱 재시작 시 재로그인), 내 반려견 목록은 `src/store/dogStore.ts` 가 들고 있고, 반려견이 없으면 App 이 온보딩 화면을 띄운다. API 요청이 401 이면 `client.ts` 가 `/auth/refresh` 로 한 번 재발급 후 재시도한다. 사진 핀은 `src/api/map/photoPinService.ts` 를 사용한다. 사진은 서버 로컬 디스크에 저장되고, 응답의 `imageUrl` 은 1시간 유효한 서명 URL(`/files/...?expires=&signature=`)이라 지도 탭에 돌아올 때마다 목록을 다시 불러온다. 산책·시설·코스 API 는 백엔드에 아직 없어 홈의 산책 통계는 예시 값이다.
 
 신고·차단은 `src/api/moderation/moderationService.ts`, 관리자 기능은 `src/api/admin/adminService.ts`(서버 전용, mock 없음)를 사용한다. 관리자 메뉴는 `/users/me` 의 `role` 이 `ADMIN` 일 때만 마이페이지에 보이고, 실제 권한 검사는 서버가 한다.
 
