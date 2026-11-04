@@ -46,7 +46,11 @@ export function HomeScreen() {
           {weeklyStats.streak > 0 ? <View style={styles.streak}><MaterialCommunityIcons name="fire" size={15} color={colors.orange} /><Text style={styles.streakText}>{weeklyStats.streak}일 연속</Text></View> : null}
         </View>
         <View style={styles.weekDays}>
-          {weekActivity.map(({ day, walked }, index) => <View key={day} style={styles.weekDay}><Text style={[styles.dayLabel, selectedDayIndex === index && styles.dayLabelSelected]}>{day}</Text><View style={[styles.dayDot, walked && styles.dayDotActive, selectedDayIndex === index && styles.dayDotSelected]}><Pressable accessibilityRole="button" accessibilityLabel={`${day}요일 산책 기록 보기`} onPress={() => setSelectedDayIndex(index)} style={styles.dayButton}>{walked ? <MaterialCommunityIcons name="paw" size={12} color={selectedDayIndex === index ? colors.orange : colors.white} /> : null}</Pressable></View></View>)}
+          {weekActivity.map(({ day, walked }, index) => {
+            const selected = selectedDayIndex === index;
+
+            return <View key={day} style={styles.weekDay}><Text style={[styles.dayLabel, selected && styles.dayLabelSelected]}>{day}</Text><View style={[styles.dayDot, walked && styles.dayDotActive, selected && (walked ? styles.dayDotSelectedActive : styles.dayDotSelected)]}><Pressable accessibilityRole="button" accessibilityLabel={`${day}요일 산책 기록 보기`} accessibilityState={{ selected }} onPress={() => setSelectedDayIndex(index)} style={styles.dayButton}>{walked ? <MaterialCommunityIcons name="paw" size={12} color={colors.white} /> : null}</Pressable></View></View>;
+          })}
         </View>
         <View style={styles.dayDetail}>
           <View style={styles.dayDetailIcon}><MaterialCommunityIcons name={selectedActivity.walked ? 'walk' : 'calendar-blank-outline'} size={20} color={selectedActivity.walked ? colors.forest : colors.inkFaint} /></View>
@@ -131,7 +135,8 @@ const styles = StyleSheet.create({
   dayLabelSelected: { color: colors.forest, fontWeight: '800' },
   dayDot: { alignItems: 'center', backgroundColor: colors.ivorySoft, borderRadius: radius.pill, height: 30, justifyContent: 'center', width: 30 },
   dayDotActive: { backgroundColor: colors.orange },
-  dayDotSelected: { borderColor: colors.forest, borderWidth: 2 },
+  dayDotSelected: { backgroundColor: colors.forestSoft, borderColor: colors.forest, borderWidth: 2 },
+  dayDotSelectedActive: { backgroundColor: colors.forest, borderColor: colors.forest, borderWidth: 2, transform: [{ scale: 1.08 }] },
   dayButton: { alignItems: 'center', height: 30, justifyContent: 'center', width: 30 },
   dayDetail: { alignItems: 'center', backgroundColor: colors.ivory, borderRadius: radius.md, flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg, padding: spacing.md },
   dayDetailIcon: { alignItems: 'center', backgroundColor: colors.forestSoft, borderRadius: radius.md, height: 38, justifyContent: 'center', width: 38 },
