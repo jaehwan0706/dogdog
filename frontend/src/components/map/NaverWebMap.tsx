@@ -15,9 +15,11 @@ import { buildNaverMapHtml } from './naverMapHtml';
 
 // 네이버 콘솔 "Web 서비스 URL" 에 이 주소를 등록해야 인증이 통과됨
 const BASE_URL = 'http://localhost';
+// SDK 58 + React 19 조합에서 react-native-webview의 ref 타입이 never로 추론되는 문제를 우회한다.
+const CompatibleWebView = WebView as unknown as React.ComponentType<any>;
 
 export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, style }: NaverWebMapProps) {
-  const webViewRef = useRef<WebView>(null);
+  const webViewRef = useRef<any>(null);
   // 처음 한 번만 만들기 (다시 만들면 WebView 가 새로고침됨)
   const [html] = useState(() => buildNaverMapHtml(CLIENT_ID, initialCamera));
   const [isReady, setIsReady] = useState(false);
@@ -56,7 +58,7 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
 
   return (
     <View style={style}>
-      <WebView
+      <CompatibleWebView
         ref={webViewRef}
         style={styles.webView}
         source={{ html, baseUrl: BASE_URL }}
