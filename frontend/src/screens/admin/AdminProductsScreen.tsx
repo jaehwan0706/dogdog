@@ -11,12 +11,12 @@ import { useAsyncData } from '../../hooks/useAsyncData';
 import type { ProfileScreenProps } from '../../navigation/ProfileNavigator';
 import { colors, radius, spacing, typography } from '../../theme';
 import type { ProductStatus } from '../../types/shop';
-import { categoryLabel, formatWon } from '../../utils/shop';
+import { categoryLabel } from '../../utils/shop';
 
 const filters: { value: ProductStatus | undefined; label: string }[] = [
   { value: undefined, label: '전체' },
-  { value: 'ON_SALE', label: '판매중' },
-  { value: 'HIDDEN', label: '판매중지' },
+  { value: 'ON_SALE', label: '노출 중' },
+  { value: 'HIDDEN', label: '숨김' },
 ];
 
 export function AdminProductsScreen({ navigation }: ProfileScreenProps<'AdminProducts'>) {
@@ -45,9 +45,9 @@ export function AdminProductsScreen({ navigation }: ProfileScreenProps<'AdminPro
                   <View style={styles.thumb}><ProductThumb imageUrl={product.imageUrl} category={product.category} size={56} /></View>
                   <View style={styles.flex}>
                     <Text style={styles.name} numberOfLines={1}>{product.name}</Text>
-                    <Text style={styles.meta}>{categoryLabel(product.category)} · {formatWon(product.price)} · 재고 {product.stock}</Text>
+                    <Text style={styles.meta}>{categoryLabel(product.category)} · {product.affiliateUrl ? '쿠팡 링크 있음' : '쿠팡 링크 없음'}</Text>
                   </View>
-                  <Text style={[styles.badge, product.status === 'HIDDEN' && styles.badgeHidden]}>{product.status === 'ON_SALE' ? (product.soldOut ? '품절' : '판매중') : '판매중지'}</Text>
+                  <Text style={[styles.badge, product.status === 'HIDDEN' && styles.badgeHidden]}>{product.status === 'ON_SALE' ? '노출 중' : '숨김'}</Text>
                 </View>
               </AppCard>
             </Pressable>

@@ -24,9 +24,10 @@ public class ProductController {
     @GetMapping
     public PageResponse<ProductResponse> list(@RequestParam(required = false) ProductCategory category,
                                               @RequestParam(required = false) String keyword,
+                                              @RequestParam(defaultValue = "false") boolean linkedOnly,
                                               @RequestParam(defaultValue = "0") int page,
                                               @RequestParam(defaultValue = "20") int size) {
-        return productService.searchOnSale(category, keyword,
+        return productService.searchOnSale(category, keyword, linkedOnly,
                 PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, 50), Sort.by(Sort.Direction.DESC, "id")));
     }
 

@@ -3,8 +3,8 @@ import type { Cart, Order, PageResponse, Product } from '../../types/shop';
 import type { ShopService } from './shopService';
 
 export const httpShopService: ShopService = {
-  getProducts: ({ category, keyword, page = 0, size = 20 } = {}) =>
-    apiRequest<PageResponse<Product>>('/products', { query: { category, keyword, page, size } }),
+  getProducts: ({ category, keyword, linkedOnly, page = 0, size = 20 } = {}) =>
+    apiRequest<PageResponse<Product>>('/products', { query: { category, keyword, linkedOnly: linkedOnly ? 'true' : undefined, page, size } }),
   getProduct: (productId) => apiRequest<Product>(`/products/${productId}`),
 
   getCart: () => apiRequest<Cart>('/cart'),

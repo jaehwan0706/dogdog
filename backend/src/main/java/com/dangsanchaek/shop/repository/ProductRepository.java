@@ -16,8 +16,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             where (:status is null or p.status = :status)
               and (:category is null or p.category = :category)
               and (:keyword is null or p.name like concat('%', :keyword, '%'))
+              and (:linkedOnly = false or p.affiliateUrl is not null)
             """)
-    Page<Product> search(ProductStatus status, ProductCategory category, String keyword, Pageable pageable);
+    Page<Product> search(ProductStatus status, ProductCategory category, String keyword, boolean linkedOnly,
+                         Pageable pageable);
 
     /** 재고가 충분할 때만 차감. 반환값 0 이면 재고 부족. */
     @Modifying(flushAutomatically = true)

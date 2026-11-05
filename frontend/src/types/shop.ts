@@ -16,6 +16,7 @@ export type Product = {
   stock: number;
   soldOut: boolean;
   imageUrl: string | null;
+  affiliateUrl: string | null; // 쿠팡 파트너스 링크
   status: ProductStatus;
   createdAt: string;
 };
@@ -32,6 +33,7 @@ export type PageResponse<T> = {
 export type ProductQuery = {
   category?: ProductCategory;
   keyword?: string;
+  linkedOnly?: boolean; // 쿠팡 링크가 있는 상품만
   page?: number;
   size?: number;
 };

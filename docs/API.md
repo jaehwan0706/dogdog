@@ -40,7 +40,7 @@
 
 신고·차단은 `src/api/moderation/moderationService.ts`, 관리자 기능은 `src/api/admin/adminService.ts`(서버 전용, mock 없음)를 사용한다. 관리자 메뉴는 `/users/me` 의 `role` 이 `ADMIN` 일 때만 마이페이지에 보이고, 실제 권한 검사는 서버가 한다.
 
-마켓 첫 화면은 쿠팡 제휴 링크(`MarketScreen`)로 전환했고 앱에서 장바구니·주문 화면으로 들어가는 경로는 없다. 아래 자체 마켓 코드와 API 는 남아 있다.
+마켓은 쿠팡 파트너스 제휴 방식이다. `MarketScreen` 은 `GET /products?linkedOnly=true` 로 쿠팡 링크(`affiliateUrl`)가 있는 상품만 보여주고, 사진을 누르면 쿠팡으로 이동한다. 상품 사진·링크는 관리자 메뉴에서 등록한다(쿠팡 도메인의 https 주소만 허용). 앱에서 장바구니·주문 화면으로 들어가는 경로는 없고, 아래 자체 마켓 코드와 API 는 남아 있다.
 
 자체 마켓은 `src/api/shop/shopService.ts` 계약을 사용한다. `EXPO_PUBLIC_API_BASE_URL` 이 없으면 `mockShopService`(하드코딩 상품·메모리 장바구니·테스트 결제), 있으면 `httpShopService` 로 백엔드를 호출한다.
 

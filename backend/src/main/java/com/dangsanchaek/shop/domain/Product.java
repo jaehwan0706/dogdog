@@ -52,6 +52,10 @@ public class Product extends BaseTimeEntity {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    /** 쿠팡 파트너스 제휴 링크. 마켓에서 상품을 누르면 이 주소로 이동한다. */
+    @Column(name = "affiliate_url", length = 1000)
+    private String affiliateUrl;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
@@ -59,13 +63,14 @@ public class Product extends BaseTimeEntity {
 
     @Builder
     private Product(String name, String description, ProductCategory category, int price, int stock,
-                    String imageUrl, ProductStatus status) {
+                    String imageUrl, String affiliateUrl, ProductStatus status) {
         this.name = name;
         this.description = description;
         this.category = category;
         this.price = price;
         this.stock = stock;
         this.imageUrl = imageUrl;
+        this.affiliateUrl = affiliateUrl;
         this.status = status == null ? ProductStatus.ON_SALE : status;
     }
 
@@ -84,6 +89,8 @@ public class Product extends BaseTimeEntity {
     public void changeStock(int stock) { this.stock = stock; }
 
     public void changeImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public void changeAffiliateUrl(String affiliateUrl) { this.affiliateUrl = affiliateUrl; }
 
     public void changeStatus(ProductStatus status) { this.status = status; }
 }

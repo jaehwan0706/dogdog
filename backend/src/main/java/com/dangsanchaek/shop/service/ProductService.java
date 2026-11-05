@@ -23,16 +23,17 @@ public class ProductService {
 
     /** 일반 사용자용: 판매중(ON_SALE) 상품만 */
     @Transactional(readOnly = true)
-    public PageResponse<ProductResponse> searchOnSale(ProductCategory category, String keyword, Pageable pageable) {
-        return search(ProductStatus.ON_SALE, category, keyword, pageable);
+    public PageResponse<ProductResponse> searchOnSale(ProductCategory category, String keyword, boolean linkedOnly,
+                                                      Pageable pageable) {
+        return PageResponse.of(productRepository.search(ProductStatus.ON_SALE, category, normalize(keyword), linkedOnly, pageable),
+                ProductResponse::from);
     }
 
     /** 관리자용: 상태 필터 선택 */
     @Transactional(readOnly = true)
     public PageResponse<ProductResponse> search(ProductStatus status, ProductCategory category, String keyword,
                                                 Pageable pageable) {
-        String kw = keyword == null || keyword.isBlank() ? null : keyword.strip();
-        return PageResponse.of(productRepository.search(status, category, kw, pageable), ProductResponse::from);
+        return PageResponse.of(productRepository.search(status, category, normalize(keyword), false, pageable), ProductResponse::from);
     }
 
     @Transactional(readOnly = true)
@@ -52,6 +53,7 @@ public class ProductService {
                 .price(request.price())
                 .stock(request.stock())
                 .imageUrl(request.imageUrl())
+                .affiliateUrl(request.affiliateUrl())
                 .status(request.status())
                 .build());
         return ProductResponse.from(product);
@@ -67,8 +69,13 @@ public class ProductService {
         if (request.price() != null) product.changePrice(request.price());
         if (request.stock() != null) product.changeStock(request.stock());
         if (request.imageUrl() != null) product.changeImageUrl(request.imageUrl());
+        if (request.affiliateUrl() != null) product.changeAffiliateUrl(request.affiliateUrl());
         if (request.status() != null) product.changeStatus(request.status());
         productRepository.flush();
         return ProductResponse.from(product);
+    }
+
+    private static String normalize(String keyword) {
+        return keyword == null || keyword.isBlank() ? null : keyword.strip();
     }
 }

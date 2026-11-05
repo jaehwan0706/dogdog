@@ -7,7 +7,7 @@ import type { ShopService } from './shopService';
 // - 주문 생성 시 재고 차감 + 장바구니에서 제거, 결제 승인 시 PAID, 취소 시 재고 복구
 // - paymentKey 가 "fail" 로 시작하면 결제 승인 실패 (백엔드 MockPaymentGateway 와 동일)
 
-const products: Product[] = mockProducts.map((product) => ({ ...product }));
+const products: Product[] = mockProducts.map((product) => ({ ...product, affiliateUrl: 'https://www.coupang.com' }));
 let cartRows: { cartItemId: number; productId: number; quantity: number }[] = [];
 const orders: (Order & { paymentKey?: string })[] = [];
 let nextCartItemId = 1;

@@ -75,7 +75,7 @@ CLI 로 돌리고 싶으면: `npx newman run postman/dangsanchaek.postman_collec
 | 친구모집·품앗이 | 🔓 `GET /posts/{id}/participants` | 참여자 목록 |
 | | `POST /posts/{id}/participants` · `DELETE /posts/{id}/participants` | 참여 신청/취소 (정원 초과·마감·본인글 차단) |
 | | `PATCH /posts/{id}/recruit-status` | 작성자 모집 마감/재개 `{status: OPEN\|CLOSED}` |
-| 상품 | 🔓 `GET /products?category=&keyword=` · 🔓 `GET /products/{id}` | 판매중 상품 목록/상세 |
+| 상품 | 🔓 `GET /products?category=&keyword=&linkedOnly=` · 🔓 `GET /products/{id}` | 판매중 상품 목록/상세. `linkedOnly=true` 면 쿠팡 링크(`affiliateUrl`)가 있는 상품만 |
 | | 👑 `GET/POST /admin/products` · 👑 `PATCH /admin/products/{id}` | 관리자 상품 관리 |
 | 장바구니 | `GET /cart` · `POST /cart/items` · `PATCH/DELETE /cart/items/{id}` · `DELETE /cart` | 담기(같은 상품은 수량 합산)/수량변경/삭제/비우기 |
 | 주문 | `POST /orders` | 주문 생성 → 재고 확보, `PENDING_PAYMENT`. `items`(바로구매) 또는 `cartItemIds`(장바구니) 중 하나 |
