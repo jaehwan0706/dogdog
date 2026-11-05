@@ -58,6 +58,9 @@ export type PostCreateInput = {
   maxParticipants?: number;
 };
 
+// 수정은 PATCH 라 보내지 않은 값은 그대로 유지된다 (카테고리는 변경 불가)
+export type PostUpdateInput = Partial<Omit<PostCreateInput, 'category'>>;
+
 export type Comment = {
   id: number;
   parentId: number | null;
