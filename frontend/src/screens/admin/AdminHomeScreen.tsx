@@ -5,11 +5,9 @@ import { Screen } from '../../components/Screen';
 import type { ProfileScreenProps } from '../../navigation/ProfileNavigator';
 import { colors, radius, spacing, typography } from '../../theme';
 
-const menus: { icon: keyof typeof MaterialCommunityIcons.glyphMap; title: string; body: string; screen: 'AdminReports' | 'AdminUsers' | 'AdminProducts' | 'AdminOrders' }[] = [
+const menus: { icon: keyof typeof MaterialCommunityIcons.glyphMap; title: string; body: string; screen: 'AdminReports' | 'AdminUsers' }[] = [
   { icon: 'alarm-light-outline', title: '신고 처리', body: '신고된 글·댓글·사용자를 검토하고 숨김·정지해요', screen: 'AdminReports' },
   { icon: 'account-multiple-outline', title: '회원 관리', body: '회원을 검색하고 이용정지·해제해요', screen: 'AdminUsers' },
-  { icon: 'package-variant', title: '상품 관리', body: '마켓 상품을 등록·수정·판매중지해요', screen: 'AdminProducts' },
-  { icon: 'truck-delivery-outline', title: '주문·배송 관리', body: '결제된 주문을 발송·배송 완료 처리해요', screen: 'AdminOrders' },
 ];
 
 // 마이페이지에서 ADMIN 계정에만 보이는 관리자 메뉴. 실제 권한 검사는 서버(/admin/**)가 한다.
