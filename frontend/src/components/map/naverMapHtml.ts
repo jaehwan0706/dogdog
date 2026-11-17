@@ -45,6 +45,9 @@ export const FACILITY_MARKER_STYLE: Record<string, { emoji: string; color: strin
   STAY: { emoji: '🛏️', color: OUTING },
   TRAVEL: { emoji: '🌳', color: OUTING },
   CULTURE: { emoji: '🎨', color: OUTING },
+  // 맞춤 산책 코스 화면: 공원 / 내가 걸었던 길의 반환점
+  PARK: { emoji: '🌳', color: '#184D3B' },
+  MY_ROUTE: { emoji: '🐾', color: '#E9903A' },
 };
 export const FACILITY_MARKER_CSS = `
   .facility { width: ${FACILITY_MARKER_SIZE - 6}px; height: ${FACILITY_MARKER_SIZE - 6}px; border: 3px solid #888; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1; cursor: pointer; }

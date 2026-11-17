@@ -37,3 +37,7 @@ app:
     url-ttl: 1h                               # 사진 URL(서명) 유효 시간
   facility:
     data-file: ${FACILITY_DATA_FILE:classpath:data/pet_facilities.csv.gz}   # 친화시설 공공데이터 (시작 시 테이블이 비어 있으면 가져옴)
+  park:
+    data-file: ${PARK_DATA_FILE:classpath:data/city_parks.csv.gz}   # 도시공원 공공데이터 (시작 시 테이블이 비어 있으면 가져옴)
+  public-data:
+    service-key: ${PUBLIC_DATA_SERVICE_KEY:}   # 공공데이터포털 일반 인증키 (기상청 단기예보·에어코리아). 없으면 예시 날씨·미세먼지

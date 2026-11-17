@@ -1,10 +1,10 @@
 package com.dangsanchaek.facility.service;
 
+import com.dangsanchaek.common.csv.PublicDataCsv;
 import com.dangsanchaek.config.properties.FacilityProperties;
 import com.dangsanchaek.facility.domain.FacilityCategory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.boot.ApplicationArguments;
@@ -15,21 +15,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.io.BufferedInputStream;
+
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
-import java.sql.Date;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.zip.GZIPInputStream;
 
 /**
  * 서버 시작 시 facilities 테이블이 비어 있으면 공공데이터 CSV 를 읽어 채운다.
@@ -85,13 +77,9 @@ public class FacilityDataLoader implements ApplicationRunner {
     }
 
     private List<Object[]> readRows(Resource resource) throws IOException {
-        CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).get();
         List<Object[]> rows = new ArrayList<>();
         Set<String> seen = new HashSet<>();
-        try (InputStream raw = new BufferedInputStream(resource.getInputStream());
-             InputStream in = isGzip(resource) ? new GZIPInputStream(raw) : raw;
-             Reader reader = new InputStreamReader(skipBom(in), StandardCharsets.UTF_8);
-             CSVParser parser = format.parse(reader)) {
+        try (CSVParser parser = PublicDataCsv.open(resource)) {
             for (CSVRecord record : parser) {
                 toRow(record).ifPresent(row -> {
                     String key = row[0] + "|" + row[2] + "|" + row[3];
@@ -103,13 +91,13 @@ public class FacilityDataLoader implements ApplicationRunner {
     }
 
     private Optional<Object[]> toRow(CSVRecord r) {
-        if (!"Y".equals(get(r, "반려동물 동반 가능정보"))) {
+        if (!"Y".equals(PublicDataCsv.get(r, "반려동물 동반 가능정보"))) {
             return Optional.empty();
         }
-        Optional<FacilityCategory> category = FacilityCategory.fromSourceName(get(r, "카테고리3"));
+        Optional<FacilityCategory> category = FacilityCategory.fromSourceName(PublicDataCsv.get(r, "카테고리3"));
         String name = text(r, "시설명", 100);
-        Double latitude = number(get(r, "위도"));
-        Double longitude = number(get(r, "경도"));
+        Double latitude = PublicDataCsv.number(PublicDataCsv.get(r, "위도"));
+        Double longitude = PublicDataCsv.number(PublicDataCsv.get(r, "경도"));
         if (category.isEmpty() || name == null || latitude == null || longitude == null) {
             return Optional.empty();
         }
@@ -117,20 +105,17 @@ public class FacilityDataLoader implements ApplicationRunner {
                 name, category.get().name(), latitude, longitude,
                 text(r, "도로명주소", 200), text(r, "지번주소", 200), text(r, "전화번호", 30),
                 text(r, "홈페이지", 500), text(r, "휴무일", 100), text(r, "운영시간", 200),
-                yesNo(get(r, "주차 가능여부")), yesNo(get(r, "장소(실내) 여부")), yesNo(get(r, "장소(실외)여부")),
+                yesNo(PublicDataCsv.get(r, "주차 가능여부")), yesNo(PublicDataCsv.get(r, "장소(실내) 여부")),
+                yesNo(PublicDataCsv.get(r, "장소(실외)여부")),
                 text(r, "입장 가능 동물 크기", 100), text(r, "반려동물 제한사항", 200),
                 text(r, "애견 동반 추가 요금", 100), text(r, "입장(이용료)가격 정보", 100),
-                text(r, "기본 정보_장소설명", 200), date(get(r, "최종작성일")),
+                text(r, "기본 정보_장소설명", 200), PublicDataCsv.date(PublicDataCsv.get(r, "최종작성일")),
         });
-    }
-
-    private static String get(CSVRecord record, String column) {
-        return record.isMapped(column) && record.isSet(column) ? record.get(column).trim() : "";
     }
 
     /** 빈 값·"정보없음" 등은 null, 너무 길면 자른다 */
     private static String text(CSVRecord record, String column, int maxLength) {
-        String value = get(record, column);
+        String value = PublicDataCsv.get(record, column);
         if (EMPTY_VALUES.contains(value)) return null;
         return value.length() > maxLength ? value.substring(0, maxLength) : value;
     }
@@ -141,37 +126,5 @@ public class FacilityDataLoader implements ApplicationRunner {
             case "N" -> Boolean.FALSE;
             default -> null;
         };
-    }
-
-    private static Double number(String value) {
-        try {
-            return value.isEmpty() ? null : Double.valueOf(value);
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    private static Date date(String value) {
-        try {
-            return value.isEmpty() ? null : Date.valueOf(LocalDate.parse(value));
-        } catch (DateTimeParseException e) {
-            return null;
-        }
-    }
-
-    private static boolean isGzip(Resource resource) {
-        String name = resource.getFilename();
-        return name != null && name.endsWith(".gz");
-    }
-
-    /** UTF-8 BOM(EF BB BF) 이 있으면 건너뛴다 (없으면 첫 헤더 이름에 붙어 "시설명" 을 못 찾음) */
-    private static InputStream skipBom(InputStream in) throws IOException {
-        InputStream buffered = in.markSupported() ? in : new BufferedInputStream(in);
-        buffered.mark(3);
-        byte[] head = buffered.readNBytes(3);
-        if (!(head.length == 3 && (head[0] & 0xFF) == 0xEF && (head[1] & 0xFF) == 0xBB && (head[2] & 0xFF) == 0xBF)) {
-            buffered.reset();
-        }
-        return buffered;
     }
 }

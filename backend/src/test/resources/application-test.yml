@@ -24,3 +24,5 @@ app:
     local-dir: build/test-uploads
   facility:
     data-file: classpath:data/pet_facilities_test.csv
+  park:
+    data-file: classpath:data/city_parks_test.csv

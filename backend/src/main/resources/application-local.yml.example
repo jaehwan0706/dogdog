@@ -24,3 +24,5 @@ app:
     mode: mock
   admin:
     emails: admin@dangsanchaek.dev
+  # public-data:
+  #   service-key: 공공데이터포털 일반 인증키 (없으면 예시 날씨·미세먼지)

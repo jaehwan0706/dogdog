@@ -7,6 +7,8 @@ import { MapScreen } from '../screens/map/MapScreen';
 import { WalkScreen } from '../screens/walk/WalkScreen';
 import { WalkResultScreen } from '../screens/walk/WalkResultScreen';
 import { WalkHistoryScreen } from '../screens/walk/WalkHistoryScreen';
+import { WalkTimeScreen } from '../screens/course/WalkTimeScreen';
+import { CourseScreen } from '../screens/course/CourseScreen';
 import { CommunityNavigator, type CommunityStackParamList } from './CommunityNavigator';
 import { ShopNavigator } from './ShopNavigator';
 import { ProfileNavigator } from './ProfileNavigator';
@@ -26,6 +28,9 @@ export type RootStackParamList = {
   Walk: undefined;
   WalkResult: { walkId: number };
   WalkHistory: undefined;
+  WalkTime: undefined;
+  // minutes: 목표 산책 시간 (추천 시간대의 권장 시간). 없으면 평소 산책 시간
+  Course: { minutes?: number } | undefined;
 };
 
 export type RootScreenProps<Name extends keyof RootStackParamList> = NativeStackScreenProps<RootStackParamList, Name>;
@@ -70,6 +75,8 @@ export function RootNavigator() {
         <Stack.Screen name="Walk" component={WalkScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="WalkResult" component={WalkResultScreen} />
         <Stack.Screen name="WalkHistory" component={WalkHistoryScreen} />
+        <Stack.Screen name="WalkTime" component={WalkTimeScreen} />
+        <Stack.Screen name="Course" component={CourseScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

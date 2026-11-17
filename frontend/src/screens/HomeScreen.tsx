@@ -7,15 +7,18 @@ import type { RootStackParamList } from '../navigation/RootNavigator';
 import { AppButton } from '../components/AppButton';
 import { AppCard } from '../components/AppCard';
 import { Screen } from '../components/Screen';
+import { courseService } from '../api/course/courseService';
 import { walkService } from '../api/walk/walkService';
 import { useAsyncData } from '../hooks/useAsyncData';
+import { useWalkTimeRecommendation } from '../hooks/useWalkTimeRecommendation';
 import { useMainDog } from '../store/dogStore';
 import { callName, withJosa } from '../utils/format';
 import { formatDistance, formatDuration } from '../utils/geo';
+import { conditionIcon, formatTemperature, slotLabel } from '../utils/recommendation';
 import { addDays, estimateKcal, summarize, toDateKey, walkDateKey, walkStreak, weekSummaries } from '../utils/walkStats';
 import { colors, radius, spacing, typography } from '../theme';
 
-// 반려견 이름·산책 통계는 서버 데이터, 추천·날씨는 코스/날씨 API 가 생기기 전까지 예시 값
+// 반려견 이름·산책 통계는 서버 데이터, 날씨·추천 시간은 내 위치 기준 추천 API (위치 권한이 없으면 안내 문구)
 export function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const mainDog = useMainDog();
@@ -51,15 +54,51 @@ export function HomeScreen() {
   const selectedKcal = estimateKcal(selectedDay.distanceMeters, weightKg);
   const openHistory = () => navigation.navigate('WalkHistory');
 
+  const { location, recommendation } = useWalkTimeRecommendation();
+  const walkTimes = recommendation.data;
+  const best = walkTimes?.bestSlots[0];
+  const bestIsNow = best !== undefined && best.time === walkTimes?.hourly[0]?.time;
+  const openWalkTime = () => navigation.navigate('WalkTime');
+  // 추천 시간의 권장 산책 시간에 맞는 코스 (추천 시간을 못 받으면 서버가 평소 산책 시간으로)
+  const courseMinutes = best?.suggestedMinutes;
+  const position = location.location;
+  const courses = useAsyncData(
+    () => (position ? courseService.recommend(position, courseMinutes) : Promise.resolve(null)),
+    [position?.latitude, position?.longitude, courseMinutes],
+  );
+  const topCourse = courses.data?.courses[0];
+  const openCourse = () => navigation.navigate('Course', courseMinutes ? { minutes: courseMinutes } : undefined);
+  const weather = weatherCopy();
+
+  function weatherCopy() {
+    if (location.status === 'denied') return { title: '위치를 허용하면 날씨를 알려드려요', body: '눌러서 우리 동네 날씨·미세먼지 보기' };
+    if (location.status === 'error' || recommendation.error) return { title: '날씨를 불러오지 못했어요', body: '눌러서 다시 확인해 보세요' };
+    if (!walkTimes) return { title: '날씨를 확인하고 있어요', body: '잠시만 기다려 주세요' };
+    const { current } = walkTimes;
+    const body = [current.conditionLabel, current.temperature === null ? null : formatTemperature(current.temperature), current.airGradeLabel ? `미세먼지 ${current.airGradeLabel}` : null]
+      .filter(Boolean).join(' · ');
+    return { title: current.headline, body: body || '날씨 정보가 없어요' };
+  }
+
   return (
     <Screen title={`${callName(dogName)}, 오늘도 걸을까?`} subtitle="오늘의 산책을 준비해볼까요?">
-      <View style={styles.weather}>
-        <View style={styles.weatherIcon}><MaterialCommunityIcons name="white-balance-sunny" size={22} color={colors.orange} /></View>
-        <View style={styles.weatherCopy}><Text style={styles.weatherTitle}>오늘은 산책하기 좋은 날이에요</Text><Text style={styles.weatherBody}>맑음 · 18°C · 미세먼지 좋음</Text></View>
+      <Pressable accessibilityRole="button" accessibilityLabel="산책하기 좋은 시간 보기" onPress={openWalkTime} style={styles.weather}>
+        <View style={styles.weatherIcon}><MaterialCommunityIcons name={walkTimes ? conditionIcon(walkTimes.current.sky, walkTimes.current.precipitation) : 'weather-partly-cloudy'} size={22} color={colors.orange} /></View>
+        <View style={styles.weatherCopy}><Text style={styles.weatherTitle}>{weather.title}</Text><Text style={styles.weatherBody}>{weather.body}</Text></View>
         <MaterialCommunityIcons name="chevron-right" size={21} color={colors.inkFaint} />
-      </View>
+      </Pressable>
       <View style={styles.heroCard}>
-        <View style={styles.heroCopy}><Text style={styles.cardLabel}>오늘의 추천 산책</Text><Text style={styles.cardTitle}>동네 한 바퀴, 가볍게</Text><Text style={styles.cardBody}>{withJosa(dogName, '과', '와')} 함께 2.3km를 천천히 걸어보세요.</Text></View>
+        <View style={styles.heroCopy}>
+          <Text style={styles.cardLabel}>오늘의 추천 산책</Text>
+          <Text style={styles.cardTitle}>{best ? (bestIsNow ? '지금 나가기 좋아요' : `${slotLabel(best.time)}가 가장 좋아요`) : '동네 한 바퀴, 가볍게'}</Text>
+          <Text style={styles.cardBody}>{withJosa(dogName, '과', '와')} 함께 {best?.suggestedMinutes ?? 30}분 정도 걸어보세요.</Text>
+          {best?.reasons[0] ? <Text style={styles.cardReason}>{best.reasons[0]}</Text> : null}
+          {topCourse ? <Text style={styles.cardCourse}>추천 코스 · {topCourse.title} (왕복 {formatDistance(topCourse.distanceMeters)})</Text> : null}
+          <View style={styles.cardLinks}>
+            <Pressable accessibilityRole="button" accessibilityLabel="추천 산책 시간 자세히 보기" hitSlop={8} onPress={openWalkTime}><Text style={styles.cardMore}>시간별 추천 ›</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="맞춤 산책 코스 보기" hitSlop={8} onPress={openCourse}><Text style={styles.cardMore}>코스 보기 ›</Text></Pressable>
+          </View>
+        </View>
         <View style={styles.heroPaw}><MaterialCommunityIcons name="paw" size={42} color={colors.orange} /></View>
         <View style={styles.buttonSpacing}>
           <AppButton label="산책 시작하기" variant="secondary" onPress={() => navigation.navigate('Walk')} />
@@ -118,6 +157,10 @@ const styles = StyleSheet.create({
   cardLabel: { ...typography.label, color: colors.orange },
   cardTitle: { ...typography.heading, color: colors.ivory, marginTop: spacing.sm },
   cardBody: { ...typography.body, color: '#C7D6CC', marginTop: spacing.xs },
+  cardReason: { ...typography.label, color: colors.orangeSoft, marginTop: spacing.sm },
+  cardCourse: { ...typography.label, color: colors.ivory, marginTop: spacing.sm },
+  cardLinks: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.sm },
+  cardMore: { ...typography.label, color: colors.ivory, textDecorationLine: 'underline' },
   buttonSpacing: { marginTop: spacing.lg },
   weather: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.lg, borderWidth: 1, flexDirection: 'row', gap: spacing.md, padding: spacing.md },
   weatherIcon: { alignItems: 'center', backgroundColor: colors.orangeSoft, borderRadius: radius.md, height: 42, justifyContent: 'center', width: 42 },
