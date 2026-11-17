@@ -25,6 +25,9 @@ public final class ShopDtos {
 
     // ===================== 상품 =====================
 
+    /** 앱이 외부 링크를 그대로 열기 때문에 쿠팡 주소만 허용한다. */
+    static final String AFFILIATE_URL_REGEX = "^https://([a-zA-Z0-9-]+\\.)*(coupang\\.com|coupa\\.ng)(/\\S*)?$";
+
     public record ProductCreateRequest(
             @NotBlank @Size(max = 100) String name,
             @Size(max = 5000) String description,
@@ -32,6 +35,8 @@ public final class ShopDtos {
             @NotNull @Min(0) @Max(100_000_000) Integer price,
             @NotNull @Min(0) @Max(1_000_000) Integer stock,
             @Size(max = 500) String imageUrl,
+            @Size(max = 1000)
+            @Pattern(regexp = AFFILIATE_URL_REGEX, message = "쿠팡 링크(https://…coupang.com, coupa.ng)만 등록할 수 있습니다.") String affiliateUrl,
             ProductStatus status
     ) {
     }
@@ -43,6 +48,8 @@ public final class ShopDtos {
             @Min(0) @Max(100_000_000) Integer price,
             @Min(0) @Max(1_000_000) Integer stock,
             @Size(max = 500) String imageUrl,
+            @Size(max = 1000)
+            @Pattern(regexp = AFFILIATE_URL_REGEX, message = "쿠팡 링크(https://…coupang.com, coupa.ng)만 등록할 수 있습니다.") String affiliateUrl,
             ProductStatus status
     ) {
     }
@@ -56,12 +63,13 @@ public final class ShopDtos {
             int stock,
             boolean soldOut,
             String imageUrl,
+            String affiliateUrl,
             ProductStatus status,
             LocalDateTime createdAt
     ) {
         public static ProductResponse from(Product p) {
             return new ProductResponse(p.getId(), p.getName(), p.getDescription(), p.getCategory(), p.getPrice(),
-                    p.getStock(), p.getStock() <= 0, p.getImageUrl(), p.getStatus(), p.getCreatedAt());
+                    p.getStock(), p.getStock() <= 0, p.getImageUrl(), p.getAffiliateUrl(), p.getStatus(), p.getCreatedAt());
         }
     }
 

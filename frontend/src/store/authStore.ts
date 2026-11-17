@@ -1,8 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import type { TokenResponse, User } from '../types/auth';
+import { tokenStorage } from './tokenStorage';
 
-// 로그인 세션(토큰 + 사용자). 지금은 메모리에만 두므로 앱을 새로 켜면 다시 로그인해야 한다.
-// 영구 저장(iOS/Android 보안 저장소, 웹 대체 저장소)은 별도 작업으로 결정한다.
+// 로그인 세션(토큰 + 사용자). Refresh Token 만 기기에 저장하고, 앱을 켤 때 authService.restoreSession 이 세션을 복구한다.
 export type AuthSession = { accessToken: string; refreshToken: string; user: User };
 
 let session: AuthSession | null = null;
@@ -16,10 +16,12 @@ export const authStore = {
   getSession: () => session,
   setSession(response: TokenResponse) {
     session = { accessToken: response.accessToken, refreshToken: response.refreshToken, user: response.user };
+    tokenStorage.save(response.refreshToken);
     emit();
   },
   clear() {
     session = null;
+    tokenStorage.remove();
     emit();
   },
   subscribe(listener: () => void) {

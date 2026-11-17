@@ -9,7 +9,7 @@ import type { ReportTargetType } from '../types/moderation';
 export type CommunityStackParamList = {
   CommunityHome: undefined;
   PostDetail: { postId: number };
-  PostWrite: undefined;
+  PostWrite: { postId?: number } | undefined; // postId 가 있으면 수정
   Report: { targetType: ReportTargetType; targetId: number; targetLabel: string };
 };
 

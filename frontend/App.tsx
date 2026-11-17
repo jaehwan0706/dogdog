@@ -1,7 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { authService } from './src/api/auth/authService';
 import { AppButton } from './src/components/AppButton';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { LoginScreen } from './src/screens/auth/LoginScreen';
@@ -13,11 +14,17 @@ import { colors } from './src/theme';
 export default function App() {
   // 로그인/회원가입 성공 시 세션이 생기고, 토큰 재발급까지 실패하면 비워져 로그인 화면으로 돌아온다
   const session = useAuthSession();
+  const [restoring, setRestoring] = useState(true);
+
+  // 저장된 로그인 복구가 끝나기 전에 로그인 화면이 깜빡이지 않도록 기다린다
+  useEffect(() => {
+    authService.restoreSession().finally(() => setRestoring(false));
+  }, []);
 
   // SafeAreaView 는 이 Provider 안에서만 동작 (웹은 없으면 "No safe area value available" 오류)
   return (
     <SafeAreaProvider>
-      {session ? <SignedInApp key={session.user.id} /> : <LoginScreen />}
+      {restoring ? <View style={styles.center}><ActivityIndicator color={colors.forest} /></View> : session ? <SignedInApp key={session.user.id} /> : <LoginScreen />}
       <StatusBar style="dark" />
     </SafeAreaProvider>
   );

@@ -2,7 +2,7 @@ import { apiRequest } from '../client';
 import { isMockAuth } from '../auth/authService';
 import { authStore } from '../../store/authStore';
 import type { PageResponse } from '../../types/shop';
-import type { Comment, LikeResult, ParticipationResult, PostCategory, PostCreateInput, PostDetail, PostSummary } from '../../types/community';
+import type { Comment, LikeResult, ParticipationResult, PostCategory, PostCreateInput, PostDetail, PostSummary, PostUpdateInput } from '../../types/community';
 
 export type PostQuery = { category?: PostCategory; keyword?: string; page?: number };
 
@@ -11,6 +11,7 @@ export type CommunityService = {
   getMyPosts: (page?: number) => Promise<PageResponse<PostSummary>>;
   getPost: (postId: number) => Promise<PostDetail>;
   createPost: (input: PostCreateInput) => Promise<PostDetail>;
+  updatePost: (postId: number, input: PostUpdateInput) => Promise<PostDetail>;
   deletePost: (postId: number) => Promise<void>;
   like: (postId: number) => Promise<LikeResult>;
   unlike: (postId: number) => Promise<LikeResult>;
@@ -26,6 +27,7 @@ const httpCommunityService: CommunityService = {
   getMyPosts: (page = 0) => apiRequest<PageResponse<PostSummary>>('/users/me/posts', { query: { page, size: 20 } }),
   getPost: (postId) => apiRequest<PostDetail>(`/posts/${postId}`),
   createPost: (input) => apiRequest<PostDetail>('/posts', { method: 'POST', body: input }),
+  updatePost: (postId, input) => apiRequest<PostDetail>(`/posts/${postId}`, { method: 'PATCH', body: input }),
   deletePost: (postId) => apiRequest<void>(`/posts/${postId}`, { method: 'DELETE' }),
   like: (postId) => apiRequest<LikeResult>(`/posts/${postId}/likes`, { method: 'POST' }),
   unlike: (postId) => apiRequest<LikeResult>(`/posts/${postId}/likes`, { method: 'DELETE' }),
@@ -78,6 +80,14 @@ const mockCommunityService: CommunityService = {
     const post: MockPost = { id: mockId++, category: input.category, title: input.title, content: input.content, imageUrls: [], author: me(), likeCount: 0, commentCount: 0, likedByMe: false, mine: true, participating: false, hidden: false, recruit, createdAt: now, updatedAt: now, comments: [] };
     mockPosts.unshift(post);
     return mockCommunityService.getPost(post.id);
+  },
+  async updatePost(postId, { meetAt, placeName, maxParticipants, ...fields }) {
+    const post = findPost(postId);
+    Object.assign(post, fields, { updatedAt: new Date().toISOString() });
+    if (post.recruit) {
+      post.recruit = { ...post.recruit, meetAt: meetAt ?? post.recruit.meetAt, placeName: placeName ?? post.recruit.placeName, maxParticipants: maxParticipants ?? post.recruit.maxParticipants };
+    }
+    return mockCommunityService.getPost(postId);
   },
   async deletePost(postId) {
     mockPosts.splice(mockPosts.indexOf(findPost(postId)), 1);

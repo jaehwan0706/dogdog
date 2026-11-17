@@ -11,6 +11,7 @@ export type ProductInput = {
   price: number;
   stock: number;
   imageUrl?: string;
+  affiliateUrl?: string;
   status: ProductStatus;
 };
 

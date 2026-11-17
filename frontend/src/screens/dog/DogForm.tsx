@@ -5,6 +5,7 @@ import { AppButton } from '../../components/AppButton';
 import { dogStore } from '../../store/dogStore';
 import { colors, radius, spacing, typography } from '../../theme';
 import type { Dog, DogGender, DogInput } from '../../types/dog';
+import { formatDateInput, isValidDate } from '../../utils/format';
 
 // 반려견 등록(온보딩·추가)과 수정에서 같이 쓰는 입력 폼. 저장에 성공하면 dogStore 에 반영하고 onSaved 호출
 export function DogForm({ dog, submitLabel, onSaved }: { dog?: Dog; submitLabel: string; onSaved: (dog: Dog) => void }) {
@@ -18,8 +19,8 @@ export function DogForm({ dog, submitLabel, onSaved }: { dog?: Dog; submitLabel:
   const [error, setError] = useState<string | null>(null);
 
   const save = async () => {
-    if (birthDate && !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
-      setError('생일은 2023-05-01 형식으로 입력해 주세요.');
+    if (birthDate && !isValidDate(birthDate)) {
+      setError('생일을 다시 확인해 주세요. 숫자 8자리로 입력하면 돼요. (예: 20230501)');
       return;
     }
     const weightKg = weight ? Number(weight) : undefined;
@@ -51,7 +52,7 @@ export function DogForm({ dog, submitLabel, onSaved }: { dog?: Dog; submitLabel:
           <Choice label="여아" active={gender === 'FEMALE'} onPress={() => setGender('FEMALE')} />
         </View>
       </Field>
-      <Field label="생일"><TextInput keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={setBirthDate} placeholder="YYYY-MM-DD" placeholderTextColor={colors.inkFaint} style={styles.input} value={birthDate} /></Field>
+      <Field label="생일"><TextInput keyboardType="number-pad" maxLength={10} onChangeText={(text) => setBirthDate(formatDateInput(text))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.inkFaint} style={styles.input} value={birthDate} /></Field>
       <Field label="몸무게 (kg)"><TextInput keyboardType="decimal-pad" onChangeText={setWeight} placeholder="예: 8.5" placeholderTextColor={colors.inkFaint} style={styles.input} value={weight} /></Field>
       <Field label="중성화">
         <View style={styles.choices}>

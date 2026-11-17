@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useRef, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { communityService } from '../../api/community/communityService';
 import { moderationService } from '../../api/moderation/moderationService';
@@ -87,13 +88,27 @@ export function PostDetailScreen({ navigation, route }: CommunityScreenProps<'Po
   const reportPost = () => navigation.navigate('Report', { targetType: 'POST', targetId: postId, targetLabel: post.data!.title });
   const reportComment = (comment: Comment) => navigation.navigate('Report', { targetType: 'COMMENT', targetId: comment.id, targetLabel: comment.content });
 
+  // 수정 화면에서 돌아오면 바뀐 내용을 다시 불러온다 (첫 진입은 useAsyncData 가 처리)
+  const focusedOnce = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (focusedOnce.current) post.reload();
+      focusedOnce.current = true;
+    }, [post.reload]),
+  );
+
   const data = post.data;
 
   return (
     <Screen title="게시글" onBack={navigation.goBack} headerRight={data?.mine ? (
-      <Pressable accessibilityRole="button" accessibilityLabel="게시글 삭제" hitSlop={8} onPress={deletePost}>
-        <MaterialCommunityIcons name="trash-can-outline" size={22} color={colors.inkSoft} />
-      </Pressable>
+      <View style={styles.headerActions}>
+        <Pressable accessibilityRole="button" accessibilityLabel="게시글 수정" hitSlop={8} onPress={() => navigation.navigate('PostWrite', { postId })}>
+          <MaterialCommunityIcons name="pencil-outline" size={22} color={colors.inkSoft} />
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="게시글 삭제" hitSlop={8} onPress={deletePost}>
+          <MaterialCommunityIcons name="trash-can-outline" size={22} color={colors.inkSoft} />
+        </Pressable>
+      </View>
     ) : data ? (
       <View style={styles.headerActions}>
         <Pressable accessibilityRole="button" accessibilityLabel="게시글 신고" hitSlop={8} onPress={reportPost}>

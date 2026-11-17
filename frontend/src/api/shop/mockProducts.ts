@@ -3,7 +3,7 @@ import type { Product } from '../../types/shop';
 // 백엔드 연결 전 하드코딩 상품 (10.08 회의: 마켓 하드코딩). 이미지 URL 은 아직 없어 카테고리 아이콘으로 표시
 const createdAt = '2026-10-01T09:00:00';
 
-export const mockProducts: Product[] = [
+export const mockProducts: Omit<Product, 'affiliateUrl'>[] = [
   { id: 1, name: '프레쉬핏 워크 하네스', description: '가슴 압박을 줄인 H형 하네스. 야간 산책용 반사 테이프가 둘러져 있어요.', category: 'WALK', price: 42000, stock: 12, soldOut: false, imageUrl: null, status: 'ON_SALE', createdAt },
   { id: 2, name: '포레스트 투어 리드줄 1.5m', description: '손목 스트랩과 충격 흡수 밴드가 달린 데일리 리드줄.', category: 'WALK', price: 28000, stock: 20, soldOut: false, imageUrl: null, status: 'ON_SALE', createdAt },
   { id: 3, name: '생분해 배변봉투 120매', description: '옥수수 전분 소재의 생분해 봉투. 디스펜서 호환 롤 8개 구성.', category: 'WALK', price: 9900, stock: 50, soldOut: false, imageUrl: null, status: 'ON_SALE', createdAt },

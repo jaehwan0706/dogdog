@@ -420,6 +420,38 @@ class ApiFlowTest {
         call(get("/orders/" + orderNo), reporter, null).andExpect(jsonPath("$.deliveredAt").isNotEmpty());
     }
 
+    // ======================== 쿠팡 제휴 마켓 ========================
+
+    @Test
+    void 쿠팡링크_상품_등록_허용주소검사_링크상품만조회() throws Exception {
+        String admin = signupAs("admin-market@test.dev");
+        call(post("/admin/products"), admin, """
+                {"name":"피싱 링크","category":"WALK","price":0,"stock":0,"affiliateUrl":"https://coupang.com.evil.dev/a"}""")
+                .andExpect(status().isBadRequest());
+        call(post("/admin/products"), admin, """
+                {"name":"http 링크","category":"WALK","price":0,"stock":0,"affiliateUrl":"http://link.coupang.com/a/x"}""")
+                .andExpect(status().isBadRequest());
+
+        Integer linked = JsonPath.read(call(post("/admin/products"), admin, """
+                {"name":"제휴 리드줄","category":"WALK","price":0,"stock":0,"affiliateUrl":"https://link.coupang.com/a/test1"}""")
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.affiliateUrl").value("https://link.coupang.com/a/test1"))
+                .andReturn().getResponse().getContentAsString(), "$.id");
+        Integer unlinked = JsonPath.read(call(post("/admin/products"), admin, """
+                {"name":"링크 없는 상품","category":"WALK","price":1000,"stock":1}""")
+                .andReturn().getResponse().getContentAsString(), "$.id");
+
+        String byId = "$.content[?(@.id == %d)]";
+        call(get("/products?linkedOnly=true&size=50"), null, null)
+                .andExpect(jsonPath(byId.formatted(linked), hasSize(1)))
+                .andExpect(jsonPath(byId.formatted(unlinked), hasSize(0)));
+        call(get("/products?size=50"), null, null).andExpect(jsonPath(byId.formatted(unlinked), hasSize(1)));
+
+        call(patch("/admin/products/" + unlinked), admin, "{\"affiliateUrl\":\"https://www.coupang.com/vp/products/1\"}")
+                .andExpect(status().isOk());
+        call(get("/products?linkedOnly=true&size=50"), null, null).andExpect(jsonPath(byId.formatted(unlinked), hasSize(1)));
+    }
+
     // ======================== helpers ========================
 
     private ResultActions call(MockHttpServletRequestBuilder req, String token, String body) throws Exception {

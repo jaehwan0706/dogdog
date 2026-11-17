@@ -13,18 +13,17 @@ import { productCategories } from '../../utils/shop';
 
 const categoryOptions = productCategories.map((c) => ({ value: c.value as ProductCategory | undefined, label: c.label }));
 const statusOptions: { value: ProductStatus | undefined; label: string }[] = [
-  { value: 'ON_SALE', label: '판매중' },
-  { value: 'HIDDEN', label: '판매중지' },
+  { value: 'ON_SALE', label: '노출' },
+  { value: 'HIDDEN', label: '숨김' },
 ];
 
-// 상품 등록(productId 없음)·수정. 이미지는 업로드 기능 전까지 이미지 주소(URL)로 입력한다.
+// 쿠팡 제휴 상품 등록(productId 없음)·수정. 이미지는 업로드 기능 전까지 이미지 주소(URL)로 입력한다.
 export function AdminProductEditScreen({ navigation, route }: ProfileScreenProps<'AdminProductEdit'>) {
   const { productId } = route.params;
   const [loading, setLoading] = useState(productId !== undefined);
   const [name, setName] = useState('');
   const [category, setCategory] = useState<ProductCategory | undefined>('WALK');
-  const [price, setPrice] = useState('');
-  const [stock, setStock] = useState('');
+  const [affiliateUrl, setAffiliateUrl] = useState('');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [status, setStatus] = useState<ProductStatus | undefined>('ON_SALE');
@@ -38,8 +37,7 @@ export function AdminProductEditScreen({ navigation, route }: ProfileScreenProps
       .then((product) => {
         setName(product.name);
         setCategory(product.category);
-        setPrice(String(product.price));
-        setStock(String(product.stock));
+        setAffiliateUrl(product.affiliateUrl ?? '');
         setDescription(product.description ?? '');
         setImageUrl(product.imageUrl ?? '');
         setStatus(product.status);
@@ -48,22 +46,20 @@ export function AdminProductEditScreen({ navigation, route }: ProfileScreenProps
       .finally(() => setLoading(false));
   }, [productId]);
 
-  const canSave = name.trim() !== '' && category && price !== '' && stock !== '';
+  const canSave = name.trim() !== '' && category && affiliateUrl.trim() !== '' && imageUrl.trim() !== '';
 
   const save = async () => {
     const input: ProductInput = {
       name: name.trim(),
       category: category!,
-      price: Number(price),
-      stock: Number(stock),
+      // 구매는 쿠팡에서 이뤄져 가격·재고를 관리하지 않는다 (서버 필수 값이라 0 으로 보냄)
+      price: 0,
+      stock: 0,
       description: description.trim() || undefined,
-      imageUrl: imageUrl.trim() || undefined,
+      imageUrl: imageUrl.trim(),
+      affiliateUrl: affiliateUrl.trim(),
       status: status ?? 'ON_SALE',
     };
-    if (!Number.isInteger(input.price) || !Number.isInteger(input.stock)) {
-      setError('가격과 재고는 숫자로 입력해 주세요.');
-      return;
-    }
     setSaving(true);
     setError(null);
     try {
@@ -82,13 +78,10 @@ export function AdminProductEditScreen({ navigation, route }: ProfileScreenProps
         <>
           <Field label="상품명 *"><TextInput maxLength={100} onChangeText={setName} placeholder="예: 반사 리드줄 1.5m" placeholderTextColor={colors.inkFaint} style={styles.input} value={name} /></Field>
           <Field label="카테고리 *"><FilterChips options={categoryOptions} value={category} onChange={setCategory} /></Field>
-          <View style={styles.pair}>
-            <View style={styles.flex}><Field label="가격 (원) *"><TextInput keyboardType="number-pad" onChangeText={setPrice} placeholder="12000" placeholderTextColor={colors.inkFaint} style={styles.input} value={price} /></Field></View>
-            <View style={styles.flex}><Field label="재고 *"><TextInput keyboardType="number-pad" onChangeText={setStock} placeholder="30" placeholderTextColor={colors.inkFaint} style={styles.input} value={stock} /></Field></View>
-          </View>
+          <Field label="쿠팡 파트너스 링크 *"><TextInput autoCapitalize="none" maxLength={1000} onChangeText={setAffiliateUrl} placeholder="https://link.coupang.com/a/..." placeholderTextColor={colors.inkFaint} style={styles.input} value={affiliateUrl} /></Field>
           <Field label="상품 설명"><TextInput maxLength={5000} multiline onChangeText={setDescription} placeholder="상품 소개" placeholderTextColor={colors.inkFaint} style={[styles.input, styles.multiline]} textAlignVertical="top" value={description} /></Field>
-          <Field label="이미지 주소 (URL)"><TextInput autoCapitalize="none" maxLength={500} onChangeText={setImageUrl} placeholder="https://..." placeholderTextColor={colors.inkFaint} style={styles.input} value={imageUrl} /></Field>
-          <Field label="판매 상태"><FilterChips options={statusOptions} value={status} onChange={setStatus} /></Field>
+          <Field label="이미지 주소 (URL) *"><TextInput autoCapitalize="none" maxLength={500} onChangeText={setImageUrl} placeholder="https://..." placeholderTextColor={colors.inkFaint} style={styles.input} value={imageUrl} /></Field>
+          <Field label="마켓 노출"><FilterChips options={statusOptions} value={status} onChange={setStatus} /></Field>
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <AppButton disabled={!canSave || saving} label={saving ? '저장 중…' : '저장하기'} onPress={save} />
         </>
@@ -111,7 +104,5 @@ const styles = StyleSheet.create({
   label: { color: colors.inkSoft, ...typography.label },
   input: { backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, color: colors.ink, minHeight: 50, paddingHorizontal: spacing.lg, ...typography.body },
   multiline: { minHeight: 120, paddingTop: spacing.md },
-  pair: { flexDirection: 'row', gap: spacing.sm },
-  flex: { flex: 1 },
   error: { ...typography.caption, color: colors.danger, textAlign: 'center' },
 });

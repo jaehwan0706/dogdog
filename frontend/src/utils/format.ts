@@ -27,6 +27,27 @@ export function formatMeetAt(dateTime: string) {
   return `${date.getMonth() + 1}월 ${date.getDate()}일 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
+// 입력 중 자동 변환: 숫자만 쳐도 20230501 → 2023-05-01
+export function formatDateInput(text: string) {
+  const digits = text.replace(/\D/g, '').slice(0, 8);
+  return [digits.slice(0, 4), digits.slice(4, 6), digits.slice(6, 8)].filter(Boolean).join('-');
+}
+
+// 입력 중 자동 변환: 202611011800 → 2026-11-01 18:00
+export function formatDateTimeInput(text: string) {
+  const digits = text.replace(/\D/g, '').slice(0, 12);
+  const date = formatDateInput(digits);
+  const time = [digits.slice(8, 10), digits.slice(10, 12)].filter(Boolean).join(':');
+  return time ? `${date} ${time}` : date;
+}
+
+// 2023-02-30 처럼 달력에 없는 날짜를 걸러낸다
+export function isValidDate(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const parsed = new Date(`${date}T00:00:00`);
+  return !Number.isNaN(parsed.getTime()) && parsed.getDate() === Number(date.slice(8, 10));
+}
+
 export function dogAge(birthDate: string | null) {
   if (!birthDate) return null;
   const birth = new Date(birthDate);
