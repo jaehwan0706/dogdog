@@ -16,6 +16,9 @@ app:
     secret: test-secret-0123456789-abcdefghijklmnopqrstuvwxyz
   oauth:
     mock-enabled: true
+    web:
+      callback-base-url: http://localhost:8090
+      allowed-redirects: dangsanchaek://,http://localhost:8082
   payment:
     mode: mock
   admin:

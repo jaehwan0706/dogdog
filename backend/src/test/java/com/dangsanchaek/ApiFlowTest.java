@@ -452,6 +452,48 @@ class ApiFlowTest {
         call(get("/products?linkedOnly=true&size=50"), null, null).andExpect(jsonPath(byId.formatted(unlinked), hasSize(1)));
     }
 
+    // ======================== 서버 웹 로그인 (mock) ========================
+
+    @Test
+    void 서버웹로그인_시작_콜백_ticket교환_재사용불가() throws Exception {
+        // 허용되지 않은 앱 주소·로그인 방식
+        call(get("/auth/oauth/kakao/start?redirect=https://evil.dev/cb"), null, null)
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REDIRECT_URI"));
+        call(get("/auth/oauth/kakao/start?redirect=http://localhost:8082.evil.dev/cb"), null, null)
+                .andExpect(status().isBadRequest());
+        call(get("/auth/oauth/line/start?redirect=dangsanchaek://auth"), null, null).andExpect(status().isBadRequest());
+
+        // 키가 없고 mock 이 켜져 있으면 바로 콜백으로 이동
+        String toCallback = call(get("/auth/oauth/kakao/start?redirect=dangsanchaek://auth/callback"), null, null)
+                .andExpect(status().isFound()).andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
+        org.assertj.core.api.Assertions.assertThat(toCallback).startsWith("http://localhost:8090/auth/oauth/kakao/callback?code=mock:");
+        String callbackPath = toCallback.substring("http://localhost:8090".length());
+
+        String toApp = call(get(callbackPath), null, null)
+                .andExpect(status().isFound()).andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
+        org.assertj.core.api.Assertions.assertThat(toApp).startsWith("dangsanchaek://auth/callback?ticket=");
+        String ticket = toApp.substring(toApp.indexOf("ticket=") + "ticket=".length());
+
+        // 같은 state 로 콜백 재요청 불가
+        call(get(callbackPath), null, null).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_OAUTH_STATE"));
+
+        call(post("/auth/oauth/exchange"), null, "{\"ticket\":\"" + ticket + "\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.provider").value("KAKAO"))
+                .andExpect(jsonPath("$.accessToken").isNotEmpty());
+        call(post("/auth/oauth/exchange"), null, "{\"ticket\":\"" + ticket + "\"}")
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("INVALID_OAUTH_TICKET"));
+
+        // 사용자가 취소하면 앱 주소에 error 를 붙여 돌려보냄
+        String toCallback2 = call(get("/auth/oauth/kakao/start?redirect=http://localhost:8082/auth/callback"), null, null)
+                .andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
+        String state = toCallback2.substring(toCallback2.indexOf("state=") + "state=".length());
+        String cancelled = call(get("/auth/oauth/kakao/callback?error=access_denied&state=" + state), null, null)
+                .andExpect(status().isFound()).andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
+        org.assertj.core.api.Assertions.assertThat(cancelled).isEqualTo("http://localhost:8082/auth/callback?error=CANCELLED");
+    }
+
     // ======================== helpers ========================
 
     private ResultActions call(MockHttpServletRequestBuilder req, String token, String body) throws Exception {

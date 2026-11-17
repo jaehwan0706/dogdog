@@ -1,3 +1,6 @@
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
+import { Platform } from 'react-native';
 import { API_BASE_URL, ApiError, apiRequest, setAccessTokenProvider, setUnauthorizedHandler } from '../client';
 import { authStore } from '../../store/authStore';
 import { tokenStorage } from '../../store/tokenStorage';
@@ -45,6 +48,23 @@ async function refreshSession(): Promise<boolean> {
   return refreshing;
 }
 
+// 웹에서 팝업이 막혀 로그인 창이 현재 탭에서 열렸다가 /auth/callback?ticket= 으로 돌아온 경우 여기서 로그인을 마친다.
+// (팝업으로 열렸으면 App 의 maybeCompleteAuthSession 이 원래 창에 결과를 넘기므로 opener 가 있을 때는 건드리지 않음)
+async function completeRedirectedSocialLogin(): Promise<boolean> {
+  if (Platform.OS !== 'web' || window.location.pathname !== '/auth/callback') return false;
+  // 팝업 창: 결과는 원래 창이 처리하고 팝업은 곧 닫히므로 저장된 토큰으로 복구도 하지 않는다
+  if (window.opener) return true;
+  const ticket = new URLSearchParams(window.location.search).get('ticket');
+  window.history.replaceState(null, '', '/');
+  if (!ticket) return false;
+  try {
+    authStore.setSession(await apiRequest<TokenResponse>('/auth/oauth/exchange', { method: 'POST', body: { ticket }, skipAuthRetry: true }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 setAccessTokenProvider(() => authStore.getSession()?.accessToken ?? null);
 setUnauthorizedHandler(refreshSession);
 
@@ -52,6 +72,7 @@ export const authService = {
   // 앱 시작 시 저장된 Refresh Token 으로 로그인 상태를 복구한다. 네트워크 오류면 토큰을 두고 다음 실행 때 다시 시도
   async restoreSession() {
     if (isMockAuth) return;
+    if (await completeRedirectedSocialLogin()) return;
     const refreshToken = await tokenStorage.load();
     if (!refreshToken) return;
     try {
@@ -64,9 +85,25 @@ export const authService = {
     signIn(() => (isMockAuth ? Promise.resolve(mockToken(request.email, '보호자')) : apiRequest<TokenResponse>('/auth/login', { method: 'POST', body: request, skipAuthRetry: true }))),
   signup: (request: SignupRequest) =>
     signIn(() => (isMockAuth ? Promise.resolve(mockToken(request.email, request.nickname)) : apiRequest<TokenResponse>('/auth/signup', { method: 'POST', body: request, skipAuthRetry: true }))),
-  // 소셜 SDK 연동 전까지는 개발 빌드에서만 백엔드 mock 토큰("mock:{소셜ID}:{이메일}", app.oauth.mock-enabled=true 필요)으로 로그인
-  socialLogin: (provider: SocialProvider, token: string) =>
-    signIn(() => (isMockAuth ? Promise.resolve(mockToken(`${provider}@dangsanchaek.dev`, '보호자')) : apiRequest<TokenResponse>(`/auth/social/${provider}`, { method: 'POST', body: { token }, skipAuthRetry: true }))),
+  // 서버 웹 로그인: 브라우저로 소셜 로그인 창을 열고, 서버가 돌려준 1회용 ticket 을 토큰으로 바꾼다.
+  // 취소하면 false, 실패하면 ApiError. 서버에 키가 없고 mock 이 켜져 있으면 로그인 창 없이 바로 끝난다.
+  async socialLogin(provider: SocialProvider): Promise<boolean> {
+    if (isMockAuth) {
+      await signIn(() => Promise.resolve(mockToken(`${provider}@dangsanchaek.dev`, '보호자')));
+      return true;
+    }
+    // 웹: http://localhost:8082/auth/callback, Expo Go: exp://.../--/auth/callback, 앱: dangsanchaek://auth/callback
+    const redirect = Linking.createURL('auth/callback');
+    const startUrl = `${API_BASE_URL}/auth/oauth/${provider}/start?redirect=${encodeURIComponent(redirect)}`;
+    const result = await WebBrowser.openAuthSessionAsync(startUrl, redirect);
+    if (result.type !== 'success') return false;
+
+    const { ticket, error } = Linking.parse(result.url).queryParams ?? {};
+    if (error === 'CANCELLED') return false;
+    if (typeof ticket !== 'string') throw new ApiError(401, String(error ?? 'SOCIAL_LOGIN_FAILED'), '소셜 로그인에 실패했어요. 다시 시도해 주세요.');
+    await signIn(() => apiRequest<TokenResponse>('/auth/oauth/exchange', { method: 'POST', body: { ticket }, skipAuthRetry: true }));
+    return true;
+  },
   async logout() {
     const current = authStore.getSession();
     authStore.clear();

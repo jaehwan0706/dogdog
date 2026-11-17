@@ -2,6 +2,7 @@
   "expo": {
     "name": "댕산책",
     "slug": "dangsanchaek",
+    "scheme": "dangsanchaek",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",

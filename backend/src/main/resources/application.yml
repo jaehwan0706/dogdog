@@ -26,6 +26,14 @@ app:
     mock-enabled: false                # true 면 "mock:{id}:{email}" 소셜 토큰 허용 (로컬 테스트 전용)
     google-client-ids: ${GOOGLE_CLIENT_IDS:}   # 콤마 구분 (iOS, Android, Web 클라이언트 ID)
     apple-client-ids: ${APPLE_CLIENT_IDS:}     # 콤마 구분 (Bundle ID, Services ID)
+    web:
+      # 소셜 서비스가 로그인 후 돌아올 이 서버 주소. 콘솔에 {callback-base-url}/auth/oauth/{kakao|naver|google}/callback 등록
+      callback-base-url: ${OAUTH_CALLBACK_BASE_URL:}
+      # 로그인 결과를 돌려보낼 수 있는 앱 주소 (콤마 구분). "dangsanchaek://" 는 스킴만, "https://app.example.com" 은 출처 전체 비교
+      allowed-redirects: ${OAUTH_ALLOWED_REDIRECTS:dangsanchaek://}
+      kakao:
+        client-id: ${KAKAO_REST_API_KEY:}       # 카카오 REST API 키
+        client-secret: ${KAKAO_CLIENT_SECRET:}  # 콘솔에서 클라이언트 시크릿을 켰을 때만
   payment:
     mode: ${PAYMENT_MODE:toss}         # toss | mock
     toss-secret-key: ${TOSS_SECRET_KEY:}

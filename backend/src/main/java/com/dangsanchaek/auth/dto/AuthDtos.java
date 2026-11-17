@@ -53,6 +53,10 @@ public final class AuthDtos {
     ) {
     }
 
+    /** 서버 웹 로그인이 앱 주소에 붙여 준 1회용 ticket */
+    public record OAuthTicketRequest(@NotBlank(message = "ticket 이 필요합니다.") String ticket) {
+    }
+
     public record RefreshRequest(@NotBlank(message = "refreshToken 이 필요합니다.") String refreshToken) {
     }
 
