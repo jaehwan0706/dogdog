@@ -30,12 +30,26 @@ export type NaverWebMapProps = {
   route?: MapLatLng[];
   // true 면 경로가 바뀔 때 경로 전체가 보이도록 화면을 맞춤 (산책 결과 화면용)
   fitRoute?: boolean;
+  // 친화시설 마커
+  facilities?: MapFacility[];
+  onFacilityPress?: (facilityId: number) => void;
+  // 지도 이동·확대가 끝날 때마다 보이는 범위 (처음 그려졌을 때도 한 번)
+  onCameraIdle?: (viewport: MapViewport) => void;
+  // 이 값(객체)이 바뀌면 지도를 그 위치로 옮김 (검색 결과 선택 등)
+  moveTo?: MapMoveTo | null;
   style?: StyleProp<ViewStyle>;
 };
 
 export type MapLatLng = { latitude: number; longitude: number };
 
 export type MapPhotoPin = { id: number; latitude: number; longitude: number; imageUrl: string };
+
+// category: FacilityCategory 값 (마커 그림·색 결정)
+export type MapFacility = { id: number; latitude: number; longitude: number; category: string };
+
+export type MapViewport = { swLat: number; swLng: number; neLat: number; neLng: number; zoom: number };
+
+export type MapMoveTo = { latitude: number; longitude: number; zoom?: number };
 
 // 지도 페이지가 보낸 메시지(JSON 문자열) 해석. 모르는 형식이면 null
 export function parseMapMessage(data: unknown): { type?: string } | null {

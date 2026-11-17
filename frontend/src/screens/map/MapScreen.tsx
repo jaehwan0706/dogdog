@@ -1,18 +1,22 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Keyboard, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { FACILITY_MAX_SPAN, facilityService } from '../../api/facility/facilityService';
 import { photoPinService } from '../../api/map/photoPinService';
 import { AppButton } from '../../components/AppButton';
 import { AppCard } from '../../components/AppCard';
 import { Screen } from '../../components/Screen';
+import { FacilityDetailSheet } from '../../components/map/FacilitySheets';
 import { NaverWebMap } from '../../components/map/NaverWebMap';
+import type { MapMoveTo, MapViewport } from '../../components/map/naverMapCommon';
 import { PhotoPinCreateSheet, PhotoPinDetailSheet } from '../../components/map/PhotoPinSheets';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { useCurrentLocation } from '../../hooks/useCurrentLocation';
 import { useLocationPermission } from '../../hooks/useLocationPermission';
 import { useMainDog } from '../../store/dogStore';
 import { colors, radius, spacing, typography } from '../../theme';
+import { FACILITY_GROUPS, type FacilityGroup, type FacilitySummary } from '../../types/facility';
 import type { PhotoPin, PickedPhoto } from '../../types/photoPin';
 import { confirmAction, notify } from '../../utils/dialog';
 import { withJosa } from '../../utils/format';
@@ -22,6 +26,13 @@ import { pickPhoto, type PhotoSource } from '../../utils/pickPhoto';
 const DEFAULT_CAMERA = { latitude: 37.5666, longitude: 126.9784, zoom: 15 };
 
 type MapFilter = 'all' | 'photo' | 'facility';
+
+// 이보다 멀리서 보면(축소) 시설이 너무 많아 조회하지 않고 "확대해 주세요" 안내
+const MIN_FACILITY_ZOOM = 13;
+// 지도를 움직이는 동안 매번 조회하지 않도록, 멈춘 뒤 이만큼 기다렸다가 조회
+const FACILITY_FETCH_DELAY_MS = 300;
+
+type FacilityNotice = 'zoomIn' | 'truncated' | 'error' | null;
 
 export function MapScreen() {
   const withDog = withJosa(useMainDog()?.name ?? '우리 아이', '과', '와');
@@ -41,8 +52,89 @@ export function MapScreen() {
       focusedOnce.current = true;
     }, [pins.reload]),
   );
-  // 친화시설 필터에서는 사진 핀을 숨김 (시설 핀은 시설 API 연동 시 추가)
+  // 친화시설 필터에서는 사진 핀을, 사진 핀 필터에서는 시설을 숨김
   const visiblePins = useMemo(() => (filter === 'facility' ? [] : pins.data ?? []), [filter, pins.data]);
+  const showFacilities = filter !== 'photo';
+
+  // 친화시설: 지도가 멈출 때마다 보이는 범위 안의 시설을 불러옴
+  const [viewport, setViewport] = useState<MapViewport | null>(null);
+  const [group, setGroup] = useState<FacilityGroup | undefined>(undefined);
+  const [facilities, setFacilities] = useState<FacilitySummary[]>([]);
+  const [facilityLoading, setFacilityLoading] = useState(false);
+  const [facilityNotice, setFacilityNotice] = useState<FacilityNotice>(null);
+  const [selectedFacilityId, setSelectedFacilityId] = useState<number | null>(null);
+  const [moveTo, setMoveTo] = useState<MapMoveTo | null>(null);
+  const facilityRequestId = useRef(0);
+
+  useEffect(() => {
+    const id = ++facilityRequestId.current;
+    if (!showFacilities || !viewport) {
+      setFacilities([]);
+      setFacilityNotice(null);
+      setFacilityLoading(false);
+      return;
+    }
+    const { zoom, ...bounds } = viewport;
+    if (zoom < MIN_FACILITY_ZOOM || bounds.neLat - bounds.swLat > FACILITY_MAX_SPAN || bounds.neLng - bounds.swLng > FACILITY_MAX_SPAN) {
+      setFacilities([]);
+      setFacilityNotice('zoomIn');
+      setFacilityLoading(false);
+      return;
+    }
+    const categories = FACILITY_GROUPS.find((item) => item.value === group)?.categories;
+    const timer = setTimeout(async () => {
+      setFacilityLoading(true);
+      try {
+        const result = await facilityService.getInBounds(bounds, categories);
+        // 그 사이 지도를 또 움직였으면 이 응답은 버림
+        if (id !== facilityRequestId.current) return;
+        setFacilities(result.facilities);
+        setFacilityNotice(result.truncated ? 'truncated' : null);
+      } catch {
+        if (id === facilityRequestId.current) setFacilityNotice('error');
+      } finally {
+        if (id === facilityRequestId.current) setFacilityLoading(false);
+      }
+    }, FACILITY_FETCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [showFacilities, viewport, group]);
+
+  // 시설 이름 검색 (지도 가운데에서 가까운 순)
+  const [query, setQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<FacilitySummary[] | null>(null);
+  const [searching, setSearching] = useState(false);
+
+  const searchFacilities = async () => {
+    const keyword = query.trim();
+    if (!keyword) return;
+    Keyboard.dismiss();
+    const center = viewport
+      ? { latitude: (viewport.swLat + viewport.neLat) / 2, longitude: (viewport.swLng + viewport.neLng) / 2 }
+      : myLocation ?? DEFAULT_CAMERA;
+    setSearching(true);
+    try {
+      setSearchResults(await facilityService.search(keyword, center));
+    } catch (e) {
+      notify('검색하지 못했어요', e instanceof Error ? e.message : undefined);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setQuery('');
+    setSearchResults(null);
+  };
+
+  const selectSearchResult = (facility: FacilitySummary) => {
+    setSearchResults(null);
+    setFollow(false);
+    if (filter === 'photo') setFilter('all');
+    // 검색 결과가 지금 분류 칩에 안 맞으면 칩을 풀어서 마커가 보이게 함
+    if (group && !FACILITY_GROUPS.find((item) => item.value === group)?.categories.includes(facility.category)) setGroup(undefined);
+    setMoveTo({ latitude: facility.latitude, longitude: facility.longitude, zoom: 17 });
+    setSelectedFacilityId(facility.id);
+  };
 
   // 사진 핀 만들기: 버튼 누른 순간의 위치 → 사진 고르기 → 미리보기·메모 → 저장
   const [draft, setDraft] = useState<{ photo: PickedPhoto; latitude: number; longitude: number } | null>(null);
@@ -108,12 +200,42 @@ export function MapScreen() {
 
   return (
     <Screen title="산책 지도" subtitle={`${withDog} 함께 걸었던 장소를 한눈에 모아보세요.`} scroll={false}>
-      {/* 검색은 아직 UI 만 있음 (시설 API 연동 시 동작 추가) */}
       <View style={styles.search}>
         <MaterialCommunityIcons name="magnify" size={20} color={colors.inkSoft} />
-        <Text style={styles.searchText}>산책 장소나 시설을 검색해보세요</Text>
-        <MaterialCommunityIcons name="tune-variant" size={18} color={colors.forest} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={searchFacilities}
+          placeholder="친화시설 이름을 검색해보세요"
+          placeholderTextColor={colors.inkFaint}
+          returnKeyType="search"
+          style={styles.searchInput}
+        />
+        {searching ? <ActivityIndicator size="small" color={colors.forest} /> : query ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="검색어 지우기" hitSlop={8} onPress={clearSearch}>
+            <MaterialCommunityIcons name="close-circle" size={18} color={colors.inkFaint} />
+          </Pressable>
+        ) : null}
       </View>
+      {searchResults && (
+        <View style={styles.results}>
+          {searchResults.length === 0 ? (
+            <Text style={styles.resultEmpty}>'{query.trim()}' 검색 결과가 없어요.</Text>
+          ) : (
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {searchResults.map((facility) => (
+                <Pressable key={facility.id} accessibilityRole="button" onPress={() => selectSearchResult(facility)} style={({ pressed }) => [styles.result, pressed && styles.resultPressed]}>
+                  <Text style={styles.resultName} numberOfLines={1}>{facility.name}</Text>
+                  <Text style={styles.resultBody} numberOfLines={1}>{facility.categoryLabel}{facility.address ? ` · ${facility.address}` : ''}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+          <Pressable accessibilityRole="button" onPress={() => setSearchResults(null)} style={styles.resultClose}>
+            <Text style={styles.resultCloseText}>닫기</Text>
+          </Pressable>
+        </View>
+      )}
       <View style={styles.filters}>
         <Filter label="전체" active={filter === 'all'} onPress={() => setFilter('all')} />
         <Filter
@@ -123,6 +245,14 @@ export function MapScreen() {
         />
         <Filter label="친화시설" active={filter === 'facility'} onPress={() => setFilter('facility')} />
       </View>
+      {filter === 'facility' && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.groupScroll} contentContainerStyle={styles.groups}>
+          <GroupChip label="전체" active={group === undefined} onPress={() => setGroup(undefined)} />
+          {FACILITY_GROUPS.map((item) => (
+            <GroupChip key={item.value} label={item.label} active={group === item.value} onPress={() => setGroup(item.value)} />
+          ))}
+        </ScrollView>
+      )}
 
       <View style={styles.mapCard}>
         <NaverWebMap
@@ -133,7 +263,19 @@ export function MapScreen() {
           onUserGesture={() => setFollow(false)}
           photoPins={visiblePins}
           onPhotoPinPress={(pinId) => setSelectedPin(pins.data?.find((pin) => pin.id === pinId) ?? null)}
+          facilities={facilities}
+          onFacilityPress={setSelectedFacilityId}
+          onCameraIdle={setViewport}
+          moveTo={moveTo}
         />
+        {showFacilities && (facilityLoading || facilityNotice) && (
+          <View style={styles.facilityNotice} pointerEvents="none">
+            {facilityLoading ? <ActivityIndicator size="small" color={colors.forest} /> : null}
+            <Text style={styles.facilityNoticeText}>
+              {facilityLoading ? '친화시설을 불러오는 중' : FACILITY_NOTICE_TEXT[facilityNotice!]}
+            </Text>
+          </View>
+        )}
         {pins.error && (
           <Pressable style={styles.pinError} onPress={pins.reload} accessibilityRole="button">
             <Text style={styles.pinErrorText}>사진 핀을 불러오지 못했어요 · 다시 시도</Text>
@@ -180,22 +322,48 @@ export function MapScreen() {
         )}
       </View>
 
-      <AppCard>
-        <View style={styles.cardRow}>
-          <View style={styles.iconBubble}>
-            <MaterialCommunityIcons name="storefront-outline" size={21} color={colors.forest} />
+      <Pressable accessibilityRole="button" onPress={() => setFilter('facility')}>
+        <AppCard>
+          <View style={styles.cardRow}>
+            <View style={styles.iconBubble}>
+              <MaterialCommunityIcons name="storefront-outline" size={21} color={colors.forest} />
+            </View>
+            <View style={styles.cardCopy}>
+              <Text style={styles.cardTitle}>{withDog} 함께 갈 수 있는 곳</Text>
+              <Text style={styles.cardBody}>
+                {showFacilities && facilities.length > 0
+                  ? `지금 지도에 반려동물 동반 가능 시설 ${facilities.length}곳이 있어요.`
+                  : '반려동물과 함께 갈 수 있는 카페·식당·병원을 지도에서 찾아보세요.'}
+              </Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={22} color={colors.inkFaint} />
           </View>
-          <View style={styles.cardCopy}>
-            <Text style={styles.cardTitle}>{withDog} 함께 찾은 장소</Text>
-            <Text style={styles.cardBody}>반려동물과 함께 갈 수 있는 장소를 추천해드려요.</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={22} color={colors.inkFaint} />
-        </View>
-      </AppCard>
+        </AppCard>
+      </Pressable>
 
       <PhotoPinCreateSheet photo={draft?.photo ?? null} saving={saving} onCancel={() => setDraft(null)} onSave={savePhotoPin} />
       <PhotoPinDetailSheet pin={selectedPin} deleting={deleting} onClose={() => setSelectedPin(null)} onDelete={deletePhotoPin} />
+      <FacilityDetailSheet facilityId={selectedFacilityId} onClose={() => setSelectedFacilityId(null)} />
     </Screen>
+  );
+}
+
+const FACILITY_NOTICE_TEXT: Record<Exclude<FacilityNotice, null>, string> = {
+  zoomIn: '지도를 확대하면 친화시설이 보여요',
+  truncated: '가까운 시설만 보여요 · 확대하면 더 보여요',
+  error: '친화시설을 불러오지 못했어요',
+};
+
+function GroupChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      style={[styles.groupChip, active && styles.groupChipActive]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+    >
+      <Text style={[styles.groupChipText, active && styles.groupChipTextActive]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -214,7 +382,23 @@ function Filter({ label, active = false, onPress }: { label: string; active?: bo
 
 const styles = StyleSheet.create({
   search: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
-  searchText: { color: colors.inkFaint, flex: 1, ...typography.caption },
+  searchInput: { color: colors.ink, flex: 1, padding: 0, ...typography.body },
+  results: { backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, maxHeight: 260, overflow: 'hidden' },
+  result: { borderBottomColor: colors.line, borderBottomWidth: 1, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  resultPressed: { backgroundColor: colors.ivory },
+  resultName: { color: colors.ink, ...typography.label },
+  resultBody: { color: colors.inkSoft, marginTop: 2, ...typography.caption },
+  resultEmpty: { color: colors.inkSoft, padding: spacing.md, ...typography.body },
+  resultClose: { alignItems: 'center', paddingVertical: spacing.sm },
+  resultCloseText: { color: colors.forest, ...typography.label },
+  groupScroll: { flexGrow: 0 },
+  groups: { gap: spacing.xs },
+  groupChip: { backgroundColor: colors.ivory, borderRadius: 99, paddingHorizontal: spacing.md, paddingVertical: 6 },
+  groupChipActive: { backgroundColor: colors.forestSoft },
+  groupChipText: { color: colors.inkSoft, ...typography.caption },
+  groupChipTextActive: { color: colors.forest, fontWeight: '700' },
+  facilityNotice: { alignItems: 'center', alignSelf: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: 99, borderWidth: 1, flexDirection: 'row', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, position: 'absolute', top: spacing.md + 50 },
+  facilityNoticeText: { color: colors.inkSoft, ...typography.caption },
   filters: { flexDirection: 'row', gap: spacing.sm },
   filter: { backgroundColor: colors.white, borderColor: colors.line, borderRadius: 99, borderWidth: 1, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
   filterActive: { backgroundColor: colors.forest, borderColor: colors.forest },

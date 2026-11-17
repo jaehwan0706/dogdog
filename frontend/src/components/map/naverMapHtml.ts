@@ -27,6 +27,29 @@ export const PHOTO_PIN_CSS = `
   .pin::after { content: ''; position: absolute; left: 50%; bottom: -10px; margin-left: -6px; border: 6px solid transparent; border-top: 6px solid ${PHOTO_PIN_BORDER}; }
 `;
 
+// 친화시설 마커: 흰 원 + 분류 그림(이모지), 테두리 색은 분류 묶음별. 앵커는 원 가운데 (앱·웹 공통)
+export const FACILITY_MARKER_SIZE = 30;
+export const FACILITY_MARKER_ANCHOR = { x: FACILITY_MARKER_SIZE / 2, y: FACILITY_MARKER_SIZE / 2 };
+const MEDICAL = '#D9534F';
+const FOOD = '#E9903A';
+const CARE = '#4A86C5';
+const OUTING = '#2E8B57';
+export const FACILITY_MARKER_STYLE: Record<string, { emoji: string; color: string }> = {
+  HOSPITAL: { emoji: '🏥', color: MEDICAL },
+  PHARMACY: { emoji: '💊', color: MEDICAL },
+  CAFE: { emoji: '☕', color: FOOD },
+  RESTAURANT: { emoji: '🍽️', color: FOOD },
+  PET_SHOP: { emoji: '🦴', color: CARE },
+  GROOMING: { emoji: '✂️', color: CARE },
+  PET_CARE: { emoji: '🏠', color: CARE },
+  STAY: { emoji: '🛏️', color: OUTING },
+  TRAVEL: { emoji: '🌳', color: OUTING },
+  CULTURE: { emoji: '🎨', color: OUTING },
+};
+export const FACILITY_MARKER_CSS = `
+  .facility { width: ${FACILITY_MARKER_SIZE - 6}px; height: ${FACILITY_MARKER_SIZE - 6}px; border: 3px solid #888; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1; cursor: pointer; }
+`;
+
 export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
   const scriptUrl = naverMapScriptUrl(clientId);
 
@@ -41,6 +64,7 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
   body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   .me { width: 14px; height: 14px; border-radius: 50%; background: ${MY_LOCATION_COLOR}; border: 3px solid #fff; box-shadow: 0 0 4px rgba(0, 0, 0, 0.35); }
   ${PHOTO_PIN_CSS}
+  ${FACILITY_MARKER_CSS}
 </style>
 <script>
   function post(message) {
@@ -75,6 +99,14 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
     // 사용자가 지도를 직접 움직이면 앱에 알려서 "내 위치 따라가기"를 끔
     naver.maps.Event.addListener(map, 'dragstart', function () {
       post({ type: 'userGesture' });
+    });
+
+    // 지도 이동·확대가 끝날 때마다 보이는 범위를 앱에 알림 (친화시설 조회용)
+    naver.maps.Event.addListener(map, 'idle', function () {
+      var bounds = map.getBounds();
+      var sw = bounds.getSW();
+      var ne = bounds.getNE();
+      post({ type: 'cameraIdle', swLat: sw.lat(), swLng: sw.lng(), neLat: ne.lat(), neLng: ne.lng(), zoom: map.getZoom() });
     });
 
     function updateMyLocation(message) {
@@ -129,6 +161,30 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
       });
     }
 
+    // 친화시설: 목록이 바뀔 때마다 전부 지우고 다시 그림 (한 번에 최대 200개)
+    var facilityStyles = ${JSON.stringify(FACILITY_MARKER_STYLE)};
+    var facilityMarkers = [];
+    function updateFacilities(facilities) {
+      facilityMarkers.forEach(function (marker) { marker.setMap(null); });
+      facilityMarkers = facilities.map(function (facility) {
+        var look = facilityStyles[facility.category] || { emoji: '🐾', color: '#888' };
+        var element = document.createElement('div');
+        element.className = 'facility';
+        element.style.borderColor = look.color;
+        element.textContent = look.emoji;
+        var marker = new naver.maps.Marker({
+          map: map,
+          position: new naver.maps.LatLng(facility.latitude, facility.longitude),
+          icon: { content: element, anchor: new naver.maps.Point(${FACILITY_MARKER_ANCHOR.x}, ${FACILITY_MARKER_ANCHOR.y}) },
+          zIndex: 30,
+        });
+        naver.maps.Event.addListener(marker, 'click', function () {
+          post({ type: 'facilityPress', id: facility.id });
+        });
+        return marker;
+      });
+    }
+
     // 산책 경로: path 는 [[위도, 경도], ...]
     var routeLine = null;
     function updateRoute(message) {
@@ -155,6 +211,10 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
         updatePhotoPins(message.pins);
       } else if (message.type === 'route') {
         updateRoute(message);
+      } else if (message.type === 'facilities') {
+        updateFacilities(message.facilities);
+      } else if (message.type === 'moveTo') {
+        map.morph(new naver.maps.LatLng(message.latitude, message.longitude), message.zoom || map.getZoom());
       }
     };
 

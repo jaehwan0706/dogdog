@@ -8,7 +8,7 @@ import { formatMeetAt } from '../../utils/format';
 const MEMO_MAX = 200;
 
 // 화면 아래에서 올라오는 시트. 바깥(어두운 부분)을 누르면 닫힘
-function Sheet({ visible, onClose, children }: { visible: boolean; onClose: () => void; children: React.ReactNode }) {
+export function Sheet({ visible, onClose, children }: { visible: boolean; onClose: () => void; children: React.ReactNode }) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>

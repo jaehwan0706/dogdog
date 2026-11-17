@@ -35,3 +35,5 @@ app:
   storage:
     local-dir: ${STORAGE_LOCAL_DIR:uploads}   # 업로드 사진 저장 폴더 (서버 실행 위치 기준)
     url-ttl: 1h                               # 사진 URL(서명) 유효 시간
+  facility:
+    data-file: ${FACILITY_DATA_FILE:classpath:data/pet_facilities.csv.gz}   # 친화시설 공공데이터 (시작 시 테이블이 비어 있으면 가져옴)
