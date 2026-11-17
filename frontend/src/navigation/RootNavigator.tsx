@@ -6,6 +6,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { MapScreen } from '../screens/map/MapScreen';
 import { WalkScreen } from '../screens/walk/WalkScreen';
 import { WalkResultScreen } from '../screens/walk/WalkResultScreen';
+import { WalkHistoryScreen } from '../screens/walk/WalkHistoryScreen';
 import { CommunityNavigator, type CommunityStackParamList } from './CommunityNavigator';
 import { ShopNavigator } from './ShopNavigator';
 import { ProfileNavigator } from './ProfileNavigator';
@@ -19,11 +20,12 @@ export type RootTabParamList = {
   프로필: undefined;
 };
 
-// 탭 위에 전체 화면으로 띄우는 화면: 산책 중(하단 탭 없이) → 산책 결과
+// 탭 위에 전체 화면으로 띄우는 화면: 산책 중(하단 탭 없이) → 산책 결과, 산책 기록 목록
 export type RootStackParamList = {
   Tabs: NavigatorScreenParams<RootTabParamList> | undefined;
   Walk: undefined;
   WalkResult: { walkId: number };
+  WalkHistory: undefined;
 };
 
 export type RootScreenProps<Name extends keyof RootStackParamList> = NativeStackScreenProps<RootStackParamList, Name>;
@@ -67,6 +69,7 @@ export function RootNavigator() {
         {/* 산책 중에는 옆으로 밀어서 닫히지 않게 함 (나가기는 화면 안의 버튼으로만) */}
         <Stack.Screen name="Walk" component={WalkScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="WalkResult" component={WalkResultScreen} />
+        <Stack.Screen name="WalkHistory" component={WalkHistoryScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

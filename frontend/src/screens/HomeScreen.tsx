@@ -1,23 +1,55 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { AppButton } from '../components/AppButton';
 import { AppCard } from '../components/AppCard';
 import { Screen } from '../components/Screen';
+import { walkService } from '../api/walk/walkService';
+import { useAsyncData } from '../hooks/useAsyncData';
 import { useMainDog } from '../store/dogStore';
 import { callName, withJosa } from '../utils/format';
+import { formatDistance, formatDuration } from '../utils/geo';
+import { addDays, estimateKcal, summarize, toDateKey, walkDateKey, walkStreak, weekSummaries } from '../utils/walkStats';
 import { colors, radius, spacing, typography } from '../theme';
 
-// 반려견 이름은 서버 데이터, 산책 통계·추천·날씨는 산책/코스/날씨 API 가 생기기 전까지 예시 값
+// 반려견 이름·산책 통계는 서버 데이터, 추천·날씨는 코스/날씨 API 가 생기기 전까지 예시 값
 export function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const dogName = useMainDog()?.name ?? '우리 아이';
-  const weeklyStats = getWeeklyStats(weekActivity);
-  const [selectedDayIndex, setSelectedDayIndex] = useState(4);
-  const selectedActivity = weekActivity[selectedDayIndex];
+  const mainDog = useMainDog();
+  const dogName = mainDog?.name ?? '우리 아이';
+  const weightKg = mainDog?.weightKg;
+
+  // 연속 산책 일수까지 보려고 이번 주보다 넉넉히 최근 60일을 받는다
+  const walks = useAsyncData(() => {
+    const now = new Date();
+    return walkService.getMyWalks({ from: toDateKey(addDays(now, -59)), to: toDateKey(now) });
+  }, []);
+  // 산책을 마치고 돌아오거나 기록을 지우고 돌아오면 다시 불러온다
+  const { reload } = walks;
+  useFocusEffect(useCallback(() => { reload(); }, [reload]));
+
+  const today = new Date();
+  const todayKey = toDateKey(today);
+  const stats = useMemo(() => {
+    const list = walks.data ?? [];
+    const now = new Date();
+    const week = weekSummaries(list, now);
+    const weekKeys = new Set(week.map((day) => day.dateKey));
+    return {
+      today: summarize(list.filter((walk) => walkDateKey(walk) === todayKey)),
+      week,
+      weekTotal: summarize(list.filter((walk) => weekKeys.has(walkDateKey(walk)))),
+      streak: walkStreak(list, now),
+    };
+  }, [walks.data, todayKey]);
+  const [selectedDayIndex, setSelectedDayIndex] = useState((today.getDay() + 6) % 7);
+  const selectedDay = stats.week[selectedDayIndex];
+  const todayKcal = estimateKcal(stats.today.distanceMeters, weightKg);
+  const selectedKcal = estimateKcal(selectedDay.distanceMeters, weightKg);
+  const openHistory = () => navigation.navigate('WalkHistory');
 
   return (
     <Screen title={`${callName(dogName)}, 오늘도 걸을까?`} subtitle="오늘의 산책을 준비해볼까요?">
@@ -35,72 +67,42 @@ export function HomeScreen() {
       </View>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>오늘의 활동</Text>
-        <Text style={styles.link}>기록 보기</Text>
+        <Pressable accessibilityRole="button" hitSlop={8} onPress={openHistory}><Text style={styles.link}>기록 보기</Text></Pressable>
       </View>
       <AppCard>
         <View style={styles.stats}>
-          <Stat value="1.2 km" label="거리" />
-          <Stat value="18분" label="산책 시간" />
-          <Stat value="86 kcal" label="소모 칼로리" />
+          <Stat value={formatDistance(stats.today.distanceMeters)} label="거리" />
+          <Stat value={formatDuration(stats.today.durationSeconds)} label="산책 시간" />
+          <Stat value={todayKcal === null ? '-' : `${todayKcal} kcal`} label={todayKcal === null ? '칼로리 (체중 필요)' : '소모 칼로리'} />
         </View>
+        {walks.error ? <Text style={styles.loadError}>산책 기록을 불러오지 못했어요.</Text> : null}
       </AppCard>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>이번 주 활동</Text>
-        <Text style={styles.link}>자세히 보기</Text>
+        <Pressable accessibilityRole="button" hitSlop={8} onPress={openHistory}><Text style={styles.link}>자세히 보기</Text></Pressable>
       </View>
       <AppCard>
         <View style={styles.weekSummary}>
-          <View><Text style={styles.weekEyebrow}>이번 주 산책</Text><Text style={styles.weekHeadline}>{weeklyStats.streak > 0 ? '꾸준히 잘 걷고 있어요!' : '이번 주 산책을 시작해볼까요?'}</Text></View>
-          {weeklyStats.streak > 0 ? <View style={styles.streak}><MaterialCommunityIcons name="fire" size={15} color={colors.orange} /><Text style={styles.streakText}>{weeklyStats.streak}일 연속</Text></View> : null}
+          <View><Text style={styles.weekEyebrow}>이번 주 산책</Text><Text style={styles.weekHeadline}>{stats.weekTotal.count > 0 ? '꾸준히 잘 걷고 있어요!' : '이번 주 산책을 시작해볼까요?'}</Text></View>
+          {stats.streak > 0 ? <View style={styles.streak}><MaterialCommunityIcons name="fire" size={15} color={colors.orange} /><Text style={styles.streakText}>{stats.streak}일 연속</Text></View> : null}
         </View>
         <View style={styles.weekDays}>
-          {weekActivity.map(({ day, walked }, index) => {
+          {stats.week.map(({ day, count }, index) => {
             const selected = selectedDayIndex === index;
+            const walked = count > 0;
 
             return <View key={day} style={styles.weekDay}><Text style={[styles.dayLabel, selected && styles.dayLabelSelected]}>{day}</Text><View style={[styles.dayDot, walked && styles.dayDotActive, selected && (walked ? styles.dayDotSelectedActive : styles.dayDotSelected)]}><Pressable accessibilityRole="button" accessibilityLabel={`${day}요일 산책 기록 보기`} accessibilityState={{ selected }} onPress={() => setSelectedDayIndex(index)} style={styles.dayButton}>{walked ? <MaterialCommunityIcons name="paw" size={12} color={colors.white} /> : null}</Pressable></View></View>;
           })}
         </View>
-        <View style={styles.dayDetail}>
-          <View style={styles.dayDetailIcon}><MaterialCommunityIcons name={selectedActivity.walked ? 'walk' : 'calendar-blank-outline'} size={20} color={selectedActivity.walked ? colors.forest : colors.inkFaint} /></View>
-          <View style={styles.dayDetailCopy}><Text style={styles.dayDetailTitle}>{selectedActivity.day}요일 산책 기록</Text>{selectedActivity.walked ? <Text style={styles.dayDetailBody}>{selectedActivity.distance.toFixed(1)}km · {Math.round(selectedActivity.hours * 60)}분 · {selectedActivity.calories}kcal</Text> : <Text style={styles.dayDetailBody}>아직 기록이 없어요. 가볍게 산책을 시작해볼까요?</Text>}</View>
+        <Pressable accessibilityRole="button" onPress={openHistory} style={styles.dayDetail}>
+          <View style={styles.dayDetailIcon}><MaterialCommunityIcons name={selectedDay.count > 0 ? 'walk' : 'calendar-blank-outline'} size={20} color={selectedDay.count > 0 ? colors.forest : colors.inkFaint} /></View>
+          <View style={styles.dayDetailCopy}><Text style={styles.dayDetailTitle}>{selectedDay.day}요일 산책 기록</Text>{selectedDay.count > 0 ? <Text style={styles.dayDetailBody}>{selectedDay.count}회 · {formatDistance(selectedDay.distanceMeters)} · {formatDuration(selectedDay.durationSeconds)}{selectedKcal === null ? '' : ` · ${selectedKcal}kcal`}</Text> : <Text style={styles.dayDetailBody}>{selectedDay.dateKey > todayKey ? '아직 오지 않은 날이에요.' : '기록이 없어요. 가볍게 산책을 시작해볼까요?'}</Text>}</View>
           <MaterialCommunityIcons name="chevron-right" size={20} color={colors.inkFaint} />
-        </View>
-        <View style={styles.weekFooter}><Text style={styles.weekMetric}><Text style={styles.metricStrong}>{weeklyStats.count}회</Text> 산책</Text><Text style={styles.weekMetric}><Text style={styles.metricStrong}>{weeklyStats.distance.toFixed(1)}km</Text> 총 거리</Text><Text style={styles.weekMetric}><Text style={styles.metricStrong}>{weeklyStats.hours.toFixed(1)}시간</Text> 함께한 시간</Text></View>
+        </Pressable>
+        <View style={styles.weekFooter}><Text style={styles.weekMetric}><Text style={styles.metricStrong}>{stats.weekTotal.count}회</Text> 산책</Text><Text style={styles.weekMetric}><Text style={styles.metricStrong}>{formatDistance(stats.weekTotal.distanceMeters)}</Text> 총 거리</Text><Text style={styles.weekMetric}><Text style={styles.metricStrong}>{formatDuration(stats.weekTotal.durationSeconds)}</Text> 함께한 시간</Text></View>
       </AppCard>
     </Screen>
   );
-}
-
-type DayActivity = { day: string; walked: boolean; distance: number; hours: number; calories: number };
-
-const weekActivity: DayActivity[] = [
-  { day: '월', walked: true, distance: 2.4, hours: 0.6, calories: 102 },
-  { day: '화', walked: false, distance: 0, hours: 0, calories: 0 },
-  { day: '수', walked: true, distance: 3.1, hours: 0.8, calories: 135 },
-  { day: '목', walked: true, distance: 3.1, hours: 0.7, calories: 128 },
-  { day: '금', walked: true, distance: 2.1, hours: 0.5, calories: 86 },
-  { day: '토', walked: false, distance: 0, hours: 0, calories: 0 },
-  { day: '일', walked: false, distance: 0, hours: 0, calories: 0 },
-];
-
-function getWeeklyStats(activities: DayActivity[]) {
-  let lastWalkedIndex = -1;
-  for (let index = activities.length - 1; index >= 0; index -= 1) {
-    if (activities[index].walked) {
-      lastWalkedIndex = index;
-      break;
-    }
-  }
-
-  let streak = 0;
-  for (let index = lastWalkedIndex; index >= 0 && activities[index].walked; index -= 1) streak += 1;
-
-  return {
-    count: activities.filter((activity) => activity.walked).length,
-    distance: activities.reduce((total, activity) => total + activity.distance, 0),
-    hours: activities.reduce((total, activity) => total + activity.hours, 0),
-    streak,
-  };
 }
 
 function Stat({ value, label }: { value: string; label: string }) {
@@ -154,4 +156,5 @@ const styles = StyleSheet.create({
   weekFooter: { borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.lg, paddingTop: spacing.md },
   weekMetric: { ...typography.caption, color: colors.inkSoft },
   metricStrong: { color: colors.ink, fontWeight: '800' },
+  loadError: { ...typography.caption, color: colors.inkSoft, marginTop: spacing.md, textAlign: 'center' },
 });

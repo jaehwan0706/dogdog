@@ -16,7 +16,7 @@ import { confirmAction, notify } from '../../utils/dialog';
 import { withJosa } from '../../utils/format';
 import { formatDistance, formatDuration } from '../../utils/geo';
 
-// 산책 결과: 경로 지도 + 거리·시간·사진. 산책 종료 직후와 (추후) 기록 목록에서 함께 쓴다
+// 산책 결과: 경로 지도 + 거리·시간·사진. 산책 종료 직후와 산책 기록 목록(WalkHistoryScreen)에서 함께 쓴다
 export function WalkResultScreen({ navigation, route }: RootScreenProps<'WalkResult'>) {
   const { walkId } = route.params;
   const walk = useAsyncData(() => walkService.getDetail(walkId), [walkId]);
