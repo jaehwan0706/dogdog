@@ -32,10 +32,11 @@ export function CourseScreen({ navigation, route }: RootScreenProps<'Course'>) {
     () => courses.map((course, index) => ({ id: index, latitude: course.latitude, longitude: course.longitude, category: course.type })),
     [courses],
   );
-  // 내 경로는 실제 좌표, 공원은 지금 위치에서 공원까지 직선 (실제 길 안내는 아님)
+  // 내 경로는 걸었던 좌표, 공원은 걷는 길(TMAP). 서버가 걷는 길을 못 받았으면 공원까지 직선
   const routeLine = useMemo(() => {
     if (!selected || !position) return [];
-    return selected.type === 'MY_ROUTE' ? selected.path : [position, { latitude: selected.latitude, longitude: selected.longitude }];
+    if (selected.path.length > 1) return selected.path;
+    return [position, { latitude: selected.latitude, longitude: selected.longitude }];
   }, [selected, position]);
   const myLocation = useMemo(
     () => (position ? { ...position, accuracy: null, timestamp: 0 } : null),
@@ -88,10 +89,20 @@ export function CourseScreen({ navigation, route }: RootScreenProps<'Course'>) {
           <CourseCard key={course.id} course={course} rank={index} selected={course.id === selected?.id} onPress={() => setSelectedId(course.id)} />
         ))}
         <Text style={styles.source}>
-          공원 정보: 전국도시공원정보표준데이터(공공데이터포털). 공원 거리는 직선거리로 추정한 값이라 실제 길과 다를 수 있어요.
+          공원 정보: 전국도시공원정보표준데이터(공공데이터포털). 공원까지 길은 TMAP 보행자 경로이고, '직선'으로 표시된 코스는 직선거리로 추정한 값이에요.
           일부 공원은 반려견 출입이 제한될 수 있으니 현장 안내를 확인해 주세요.
         </Text>
-        <AppButton label="산책 시작하기" onPress={() => navigation.navigate('Walk')} />
+        <AppButton
+          label={selected ? '이 코스로 산책 시작하기' : '산책 시작하기'}
+          onPress={() =>
+            navigation.navigate(
+              'Walk',
+              selected && routeLine.length > 1
+                ? { guide: { title: selected.title, distanceMeters: selected.distanceMeters, estimatedMinutes: selected.estimatedMinutes, path: routeLine } }
+                : undefined,
+            )
+          }
+        />
       </>
     );
   }

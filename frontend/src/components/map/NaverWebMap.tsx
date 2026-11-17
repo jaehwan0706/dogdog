@@ -22,7 +22,7 @@ const BASE_URL = 'http://localhost';
 type WebViewHandle = { injectJavaScript: (script: string) => void };
 const WebView = RNWebView as ComponentType<ComponentProps<typeof RNWebView> & { ref?: Ref<WebViewHandle> }>;
 
-export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, fitRoute = false, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
+export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
   const webViewRef = useRef<WebViewHandle>(null);
   // 처음 한 번만 만들기 (다시 만들면 WebView 가 새로고침됨)
   const [html] = useState(() => buildNaverMapHtml(CLIENT_ID, initialCamera));
@@ -61,6 +61,17 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       `window.__fromApp && window.__fromApp(${JSON.stringify(message)}); true;`,
     );
   }, [isReady, route, fitRoute]);
+
+  // 코스 안내선
+  useEffect(() => {
+    if (!isReady || !guide) {
+      return;
+    }
+    const message = { type: 'guide', path: guide.map((p) => [p.latitude, p.longitude]) };
+    webViewRef.current?.injectJavaScript(
+      `window.__fromApp && window.__fromApp(${JSON.stringify(message)}); true;`,
+    );
+  }, [isReady, guide]);
 
   // 친화시설 마커 (필요한 값만 보냄)
   useEffect(() => {

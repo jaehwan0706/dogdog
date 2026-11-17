@@ -21,7 +21,7 @@ export type Course = {
   // 목적지 (공원 위치 / 내 경로에서 출발점과 가장 먼 지점)
   latitude: number;
   longitude: number;
-  // 왕복 예상 거리 (공원은 직선거리로 추정, 내 경로는 실제 기록)
+  // 왕복 예상 거리 (공원은 걷는 길 × 2, 못 받았으면 직선거리로 추정 / 내 경로는 실제 기록)
   distanceMeters: number;
   estimatedMinutes: number;
   score: number;
@@ -33,7 +33,7 @@ export type Course = {
   // 편익시설 (화장실, 음수대 등)
   convenience: string | null;
   nearbyFacilities: CourseNearbyFacility[];
-  // 내 경로의 좌표 (공원은 빈 배열)
+  // 내 경로: 걸었던 좌표 / 공원: 지금 위치에서 공원까지 걷는 길(편도, TMAP). 못 받았으면 빈 배열
   path: { latitude: number; longitude: number }[];
 };
 

@@ -9,6 +9,8 @@ import com.dangsanchaek.course.dto.CourseDtos.CourseType;
 import com.dangsanchaek.course.dto.CourseDtos.LatLngResponse;
 import com.dangsanchaek.course.dto.CourseDtos.NearbyFacilityResponse;
 import com.dangsanchaek.course.repository.ParkRepository;
+import com.dangsanchaek.course.service.route.WalkingRouter;
+import com.dangsanchaek.course.service.route.WalkingRouter.WalkingRoute;
 import com.dangsanchaek.facility.domain.Facility;
 import com.dangsanchaek.facility.domain.FacilityCategory;
 import com.dangsanchaek.facility.repository.FacilityRepository;
@@ -30,6 +32,12 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -61,12 +69,15 @@ public class CourseRecommendationService {
     static final double FALLBACK_RADIUS_METERS = 3000;
     static final int RECENT_WALKS = 30;
     static final int PATH_MAX_POINTS = 150;
+    /** 실제 걷는 길로 거리를 다시 재는 공원 수 (TMAP 호출 수) */
+    static final int ROUTED_CANDIDATES = 5;
     private static final double METERS_PER_DEGREE = 111_320;
 
     private final ParkRepository parkRepository;
     private final FacilityRepository facilityRepository;
     private final WalkRepository walkRepository;
     private final WalkPointRepository walkPointRepository;
+    private final WalkingRouter walkingRouter;
     private final Clock clock;
 
     private record Factor(String text, double impact) {
@@ -135,7 +146,10 @@ public class CourseRecommendationService {
                 lng - dLng - near * 1.3, lng + dLng + near * 1.3, EnumSet.allOf(FacilityCategory.class),
                 lat, lng, lngScale, PageRequest.of(0, 1000));
 
-        List<Scored> candidates = new ArrayList<>();
+        // 1) 직선거리로 추정해 점수를 매기고
+        record Candidate(Park park, double straight, double parkRadius, Scored estimated) {
+        }
+        List<Candidate> candidates = new ArrayList<>();
         for (Park park : parks) {
             double straight = Distance.meters(lat, lng, park.getLatitude(), park.getLongitude());
             double parkRadius = park.getAreaSquareMeters() == null ? 30 : Math.sqrt(park.getAreaSquareMeters() / Math.PI);
@@ -143,13 +157,31 @@ public class CourseRecommendationService {
             double inside = Math.min(1500, parkRadius * 2);
             double total = 2 * Math.max(0, straight - parkRadius) * DETOUR_FACTOR + inside;
             if (!beyondTarget && total > targetMeters * 1.8) continue;
-            candidates.add(scorePark(park, straight, parkRadius, total, targetMeters, pace, habit, routes, facilities,
-                    beyondTarget && total > targetMeters * 1.8));
+            candidates.add(new Candidate(park, straight, parkRadius, scorePark(park, straight, parkRadius, total, null,
+                    targetMeters, pace, habit, routes, facilities, beyondTarget && total > targetMeters * 1.8)));
+        }
+        candidates.sort(Comparator.comparingDouble((Candidate c) -> c.estimated().score()).reversed());
+
+        // 2) 상위 몇 곳만 실제 걷는 길(TMAP)로 거리를 다시 재서 점수를 고친다. 경로를 못 받으면 추정값 그대로
+        List<Scored> ranked = new ArrayList<>();
+        List<Candidate> toRoute = walkingRouter.isEnabled()
+                ? candidates.subList(0, Math.min(ROUTED_CANDIDATES, candidates.size())) : List.of();
+        List<Optional<WalkingRoute>> walkingRoutes = routeAll(lat, lng, toRoute.stream().map(Candidate::park).toList());
+        for (int i = 0; i < candidates.size(); i++) {
+            Candidate c = candidates.get(i);
+            Optional<WalkingRoute> route = i < walkingRoutes.size() ? walkingRoutes.get(i) : Optional.empty();
+            if (route.isEmpty()) {
+                ranked.add(c.estimated());
+                continue;
+            }
+            double total = 2.0 * route.get().distanceMeters();
+            ranked.add(scorePark(c.park(), c.straight(), c.parkRadius(), total, route.get(), targetMeters, pace, habit,
+                    routes, facilities, beyondTarget && total > targetMeters * 1.8));
         }
 
         List<Scored> picked = new ArrayList<>();
-        candidates.sort(Comparator.comparingDouble(Scored::score).reversed());
-        for (Scored candidate : candidates) {
+        ranked.sort(Comparator.comparingDouble(Scored::score).reversed());
+        for (Scored candidate : ranked) {
             if (picked.size() >= MAX_PARKS) break;
             boolean farEnough = picked.stream().allMatch(p -> Distance.meters(p.course().latitude(), p.course().longitude(),
                     candidate.course().latitude(), candidate.course().longitude()) >= MIN_PARK_GAP_METERS);
@@ -158,9 +190,35 @@ public class CourseRecommendationService {
         return picked;
     }
 
-    private Scored scorePark(Park park, double straight, double parkRadius, double total, double targetMeters,
-                             double pace, WalkHabit habit, Map<Long, List<WalkPoint>> routes, List<Facility> facilities,
-                             boolean tooFar) {
+    /** 여러 공원까지의 걷는 길을 동시에 받는다 (TMAP 응답이 공원마다 0.3~1초) */
+    private List<Optional<WalkingRoute>> routeAll(double lat, double lng, List<Park> parks) {
+        if (parks.isEmpty()) return List.of();
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<Optional<WalkingRoute>>> futures = parks.stream()
+                    .map(park -> executor.submit(() -> walkingRouter.route(lat, lng, park.getLatitude(), park.getLongitude())))
+                    .toList();
+            List<Optional<WalkingRoute>> result = new ArrayList<>();
+            for (Future<Optional<WalkingRoute>> future : futures) {
+                try {
+                    result.add(future.get());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    result.add(Optional.empty());
+                } catch (ExecutionException e) {
+                    result.add(Optional.empty());
+                }
+            }
+            return result;
+        }
+    }
+
+    /**
+     * @param total 왕복 거리: 걷는 길(route)이 있으면 그 편도 거리 × 2, 없으면 직선거리 추정
+     * @param route TMAP 보행자 경로 (없으면 null)
+     */
+    private Scored scorePark(Park park, double straight, double parkRadius, double total, WalkingRoute route,
+                             double targetMeters, double pace, WalkHabit habit, Map<Long, List<WalkPoint>> routes,
+                             List<Facility> facilities, boolean tooFar) {
         List<Factor> factors = new ArrayList<>();
         factors.add(distanceFactor(total, targetMeters));
 
@@ -214,10 +272,11 @@ public class CourseRecommendationService {
             if (reasons.size() > 3) reasons.removeLast();
         }
         CourseResponse course = new CourseResponse("park-" + park.getId(), CourseType.PARK, park.getName(),
-                park.getParkType() + " · 직선 " + formatMeters(straight),
+                park.getParkType() + (route != null ? " · 길 따라 " + formatMeters(route.distanceMeters())
+                        : " · 직선 " + formatMeters(straight)),
                 park.getLatitude(), park.getLongitude(), roundTo10(total), minutes(total, pace), (int) Math.round(score),
                 List.copyOf(reasons), park.getId(), null, park.getAddress(), area, park.getConvenience(),
-                nearby.stream().limit(3).toList(), List.of());
+                nearby.stream().limit(3).toList(), route == null ? List.of() : downsampleCoordinates(route.path()));
         return new Scored(course, score);
     }
 
@@ -321,14 +380,22 @@ public class CourseRecommendationService {
         return Distance.meters(a.getLatitude(), a.getLongitude(), b.getLatitude(), b.getLongitude()) <= SAME_ROUTE_METERS;
     }
 
+    private static List<LatLngResponse> downsampleCoordinates(List<double[]> points) {
+        return downsample(points, p -> new LatLngResponse(p[0], p[1]));
+    }
+
     private static List<LatLngResponse> downsample(List<WalkPoint> points) {
+        return downsample(points, p -> new LatLngResponse(p.getLatitude(), p.getLongitude()));
+    }
+
+    /** 첫·끝 좌표는 남기고 최대 PATH_MAX_POINTS 개 정도로 솎는다 */
+    private static <T> List<LatLngResponse> downsample(List<T> points, Function<T, LatLngResponse> toLatLng) {
         int step = Math.max(1, (int) Math.ceil(points.size() / (double) PATH_MAX_POINTS));
         List<LatLngResponse> path = new ArrayList<>();
         for (int i = 0; i < points.size(); i += step) {
-            path.add(new LatLngResponse(points.get(i).getLatitude(), points.get(i).getLongitude()));
+            path.add(toLatLng.apply(points.get(i)));
         }
-        WalkPoint last = points.get(points.size() - 1);
-        if ((points.size() - 1) % step != 0) path.add(new LatLngResponse(last.getLatitude(), last.getLongitude()));
+        if ((points.size() - 1) % step != 0) path.add(toLatLng.apply(points.getLast()));
         return path;
     }
 

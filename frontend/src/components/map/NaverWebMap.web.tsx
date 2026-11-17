@@ -14,6 +14,7 @@ import {
   MY_LOCATION_COLOR,
   PHOTO_PIN_ANCHOR,
   PHOTO_PIN_CSS,
+  GUIDE_STYLE,
   ROUTE_FIT_MARGIN,
   ROUTE_STYLE,
   naverMapScriptUrl,
@@ -67,13 +68,14 @@ function loadNaverMaps(clientId: string): Promise<void> {
   return scriptPromise;
 }
 
-export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, fitRoute = false, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
+export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<NaverMaps>(null);
   const myMarkerRef = useRef<NaverMaps>(null);
   const myCircleRef = useRef<NaverMaps>(null);
   const photoMarkersRef = useRef<NaverMaps[]>([]);
   const routeLineRef = useRef<NaverMaps>(null);
+  const guideLineRef = useRef<NaverMaps>(null);
   const facilityMarkersRef = useRef<NaverMaps[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<MapError | null>(CLIENT_ID ? null : 'missingClientId');
@@ -147,6 +149,7 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       myCircleRef.current = null;
       photoMarkersRef.current = [];
       routeLineRef.current = null;
+      guideLineRef.current = null;
       facilityMarkersRef.current = [];
     };
   }, []);
@@ -267,6 +270,21 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       map.fitBounds(routeLineRef.current.getBounds(), { top: m, right: m, bottom: m, left: m });
     }
   }, [isReady, route, fitRoute]);
+
+  // 코스 안내선
+  useEffect(() => {
+    const maps = naverWindow.naver?.maps;
+    const map = mapRef.current;
+    if (!isReady || !guide || !maps || !map) {
+      return;
+    }
+    const path = guide.map((p) => new maps.LatLng(p.latitude, p.longitude));
+    if (!guideLineRef.current) {
+      guideLineRef.current = new maps.Polyline({ map, path, clickable: false, zIndex: 5, ...GUIDE_STYLE });
+    } else {
+      guideLineRef.current.setPath(path);
+    }
+  }, [isReady, guide]);
 
   if (error === 'missingClientId') {
     return <MapErrorView style={style} message={ERROR_MESSAGES[error]} />;

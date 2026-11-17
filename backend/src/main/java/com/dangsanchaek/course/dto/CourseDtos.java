@@ -35,10 +35,10 @@ public final class CourseDtos {
     /**
      * @param id               목록 안에서 구분하는 값 ("park-12", "walk-34")
      * @param latitude         목적지 (공원 위치 / 내 경로에서 출발점과 가장 먼 지점)
-     * @param distanceMeters   왕복 예상 거리 (공원: 직선거리 × 1.3 왕복 + 공원 안 걷기, 내 경로: 실제 기록)
+     * @param distanceMeters   왕복 예상 거리 (공원: TMAP 걷는 길 × 2, 경로를 못 받으면 직선거리 × 1.3 왕복 + 공원 안 걷기 / 내 경로: 실제 기록)
      * @param estimatedMinutes 내 걷는 속도로 계산한 예상 시간
      * @param reasons          추천 이유 (최대 3개)
-     * @param path             내 경로의 좌표 (최대 150개, 공원은 빈 목록)
+     * @param path             내 경로: 걸었던 좌표 / 공원: 지금 위치에서 공원까지 걷는 길(편도, TMAP), 못 받으면 빈 목록. 최대 약 150개
      */
     public record CourseResponse(
             String id,

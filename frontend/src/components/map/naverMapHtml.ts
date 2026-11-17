@@ -14,6 +14,8 @@ export const MY_LOCATION_COLOR = '#2F80ED';
 
 // 산책 경로선 (앱·웹 공통)
 export const ROUTE_STYLE = { strokeColor: '#E9903A', strokeWeight: 6, strokeOpacity: 0.9, strokeLineCap: 'round', strokeLineJoin: 'round' };
+// 코스 안내선: 산책 경로선 아래 초록 점선 (앱·웹 공통)
+export const GUIDE_STYLE = { strokeColor: '#184D3B', strokeWeight: 7, strokeOpacity: 0.45, strokeStyle: 'shortdash', strokeLineCap: 'round', strokeLineJoin: 'round' };
 // 경로에 화면을 맞출 때 가장자리 여백(px)
 export const ROUTE_FIT_MARGIN = 48;
 
@@ -203,6 +205,17 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
       }
     }
 
+    // 코스 안내선
+    var guideLine = null;
+    function updateGuide(message) {
+      var path = message.path.map(function (p) { return new naver.maps.LatLng(p[0], p[1]); });
+      if (!guideLine) {
+        guideLine = new naver.maps.Polyline(Object.assign({ map: map, path: path, clickable: false, zIndex: 5 }, ${JSON.stringify(GUIDE_STYLE)}));
+      } else {
+        guideLine.setPath(path);
+      }
+    }
+
     window.__fromApp = function (message) {
       // 인증 실패 시 네이버 SDK 가 naver.maps 를 비우므로 그 뒤 메시지는 무시
       if (!naver.maps) {
@@ -214,6 +227,8 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
         updatePhotoPins(message.pins);
       } else if (message.type === 'route') {
         updateRoute(message);
+      } else if (message.type === 'guide') {
+        updateGuide(message);
       } else if (message.type === 'facilities') {
         updateFacilities(message.facilities);
       } else if (message.type === 'moveTo') {

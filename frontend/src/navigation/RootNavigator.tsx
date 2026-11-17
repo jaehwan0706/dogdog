@@ -23,9 +23,19 @@ export type RootTabParamList = {
 };
 
 // 탭 위에 전체 화면으로 띄우는 화면: 산책 중(하단 탭 없이) → 산책 결과, 산책 기록 목록
+// 산책 화면에 띄우는 코스 안내
+export type WalkGuide = {
+  title: string;
+  // 왕복 예상 거리·시간
+  distanceMeters: number;
+  estimatedMinutes: number;
+  path: { latitude: number; longitude: number }[];
+};
+
 export type RootStackParamList = {
   Tabs: NavigatorScreenParams<RootTabParamList> | undefined;
-  Walk: undefined;
+  // guide: 코스 추천에서 고른 코스 (지도에 안내선으로 표시). 없으면 안내선 없이 기록만
+  Walk: { guide?: WalkGuide } | undefined;
   WalkResult: { walkId: number };
   WalkHistory: undefined;
   WalkTime: undefined;
