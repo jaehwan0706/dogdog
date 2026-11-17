@@ -13,15 +13,20 @@ type AuthMode = 'landing' | 'emailLogin' | 'signUp';
 export function LoginScreen() {
   const [mode, setMode] = useState<AuthMode>('landing');
   const [socialError, setSocialError] = useState<string | null>(null);
+  const [socialBusy, setSocialBusy] = useState(false);
 
-  // 소셜 SDK 연동 전 임시: 개발 빌드에서만 백엔드 mock 토큰으로 로그인 (서버 app.oauth.mock-enabled=true 필요)
-  const loginWithSocial = (provider: SocialProvider) => {
-    if (!__DEV__) {
-      setSocialError('소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요.');
-      return;
-    }
+  // 로그인 창을 닫거나 취소하면 조용히 원래 화면으로 돌아온다
+  const loginWithSocial = async (provider: SocialProvider) => {
+    if (socialBusy) return;
+    setSocialBusy(true);
     setSocialError(null);
-    authService.socialLogin(provider, `mock:dev-${provider}:dev-${provider}@dangsanchaek.dev`).catch((e: Error) => setSocialError(e.message));
+    try {
+      await authService.socialLogin(provider);
+    } catch (e) {
+      setSocialError(e instanceof Error ? e.message : '소셜 로그인에 실패했어요.');
+    } finally {
+      setSocialBusy(false);
+    }
   };
 
   if (mode !== 'landing') {

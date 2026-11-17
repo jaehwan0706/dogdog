@@ -1,4 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
+import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -10,6 +11,9 @@ import { DogOnboardingScreen } from './src/screens/dog/DogOnboardingScreen';
 import { useAuthSession } from './src/store/authStore';
 import { dogStore, useDogs } from './src/store/dogStore';
 import { colors } from './src/theme';
+
+// 웹에서 소셜 로그인 팝업이 /auth/callback 으로 돌아오면 결과를 원래 창에 넘기고 팝업을 닫는다 (앱에서는 아무 일도 안 함)
+WebBrowser.maybeCompleteAuthSession();
 
 export default function App() {
   // 로그인/회원가입 성공 시 세션이 생기고, 토큰 재발급까지 실패하면 비워져 로그인 화면으로 돌아온다

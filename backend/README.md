@@ -42,6 +42,24 @@ CLI 로 돌리고 싶으면: `npx newman run postman/dangsanchaek.postman_collec
 | `app.admin.emails` | `admin@dangsanchaek.dev` | 이 이메일로 가입하면 ADMIN (상품·주문·신고·회원 관리). 앱 마이페이지에 관리자 메뉴가 보임 |
 
 ## 3. 인증 방식
+
+### 소셜 로그인 (서버 웹 로그인)
+앱이 브라우저로 소셜 로그인 창을 열고, 서버가 콜백을 받아 로그인을 끝낸 뒤 1회용 `ticket` 을 붙여 앱으로 돌려보냅니다.
+1. 앱 → 🔓 `GET /auth/oauth/{kakao|naver|google}/start?redirect={앱 주소}` → 소셜 로그인 화면
+2. 소셜 서비스 → 🔓 `GET /auth/oauth/{provider}/callback?code=&state=` → `{앱 주소}?ticket=...` (취소·실패 시 `?error=CANCELLED` 등)
+3. 앱 → 🔓 `POST /auth/oauth/exchange {ticket}` → 로그인 응답 (ticket 은 60초, 1회용)
+
+- 앱 주소는 `app.oauth.web.allowed-redirects` 에 있어야 합니다 (다른 사이트로 결과가 새지 않도록).
+- 키가 비어 있고 `app.oauth.mock-enabled=true` 면 소셜 화면 없이 `dev-{provider}` 계정으로 바로 로그인됩니다 (로컬 테스트용).
+- state·ticket 은 서버 메모리에 둡니다. 서버를 여러 대로 늘리면 공용 저장소로 옮겨야 합니다.
+
+**카카오 설정** (Kakao Developers)
+1. 애플리케이션을 만들고 **REST API 키**를 `application-local.yml` 의 `app.oauth.web.kakao.client-id` 에 넣습니다 (운영: `KAKAO_REST_API_KEY`).
+2. 카카오 로그인을 활성화하고 Redirect URI 에 `{callback-base-url}/auth/oauth/kakao/callback` 을 등록합니다. 로컬은 `http://localhost:8090/auth/oauth/kakao/callback`.
+3. 동의 항목에서 닉네임·프로필 사진(필요하면 이메일)을 설정합니다. 클라이언트 시크릿을 켰다면 `client-secret` 에도 넣습니다.
+4. 휴대폰(Expo Go)으로 시험할 때는 휴대폰이 서버에 접속할 수 있어야 하므로 `callback-base-url` 과 앱 `.env` 의 서버 주소를 PC 의 IP(예: `http://192.168.0.10:8090`)로 바꾸고, 그 주소의 콜백도 카카오에 등록합니다.
+
+### 토큰
 - 로그인/가입 응답: `accessToken`(JWT, 30분) + `refreshToken`(14일, 1회용·사용 시 새로 발급)
 - 보호된 API 헤더: `Authorization: Bearer {accessToken}`
 - 401 이면 `POST /auth/refresh` 로 재발급

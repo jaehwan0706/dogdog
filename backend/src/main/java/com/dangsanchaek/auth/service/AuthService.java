@@ -65,15 +65,20 @@ public class AuthService {
      */
     @Transactional
     public TokenResponse socialLogin(String providerPath, SocialLoginRequest request) {
-        AuthProvider provider = AuthProvider.fromSocialPath(providerPath);
-        SocialProfile profile = socialVerifiers.verify(provider, request.token());
+        return loginWithSocialToken(AuthProvider.fromSocialPath(providerPath), request.token(), request.nickname());
+    }
+
+    /** 소셜 토큰을 검증해 로그인하거나 처음이면 가입시킨다. 앱 SDK 토큰과 서버 웹 로그인 콜백이 함께 쓴다. */
+    @Transactional
+    public TokenResponse loginWithSocialToken(AuthProvider provider, String token, String nickname) {
+        SocialProfile profile = socialVerifiers.verify(provider, token);
 
         return userRepository.findByProviderAndProviderId(provider, profile.providerId())
                 .map(user -> {
                     if (user.isSuspended()) throw new BusinessException(ErrorCode.USER_SUSPENDED);
                     return tokenService.issue(user, false);
                 })
-                .orElseGet(() -> tokenService.issue(registerSocialUser(provider, profile, request.nickname()), true));
+                .orElseGet(() -> tokenService.issue(registerSocialUser(provider, profile, nickname), true));
     }
 
     @Transactional(readOnly = true)

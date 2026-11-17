@@ -20,6 +20,13 @@ app:
     secret: local-dev-secret-change-me-0123456789-abcdefghij
   oauth:
     mock-enabled: true
+    web:
+      callback-base-url: http://localhost:8090
+      # exp:// 는 Expo Go, 8082 는 Expo 웹 개발 서버
+      allowed-redirects: dangsanchaek://,exp://,http://localhost:8082,http://127.0.0.1:8082
+      kakao:
+        client-id:       # 카카오 REST API 키 (비워두면 mock 로그인)
+        client-secret:
   payment:
     mode: mock
   admin:
