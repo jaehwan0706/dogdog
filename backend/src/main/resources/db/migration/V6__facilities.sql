@@ -1,0 +1,34 @@
+-- ---------------------------------------------------------------------
+-- 반려동물 동반 가능 시설 (Facility)
+--   출처: 한국문화정보원_전국 반려동물 동반 가능 문화시설 위치 데이터 (공공데이터포털, 이용허락범위 제한 없음)
+--   서버가 처음 뜰 때 테이블이 비어 있으면 resources/data/pet_facilities.csv.gz 를 읽어 채운다 (FacilityDataLoader)
+--   category     : FacilityCategory (HOSPITAL, PHARMACY, CAFE, RESTAURANT, ...)
+--   parking 등 Y/N 항목은 원본에 값이 없으면 NULL
+--   source_updated_at : 원본의 '최종작성일' (시설 운영 정보는 이 날짜 기준)
+-- ---------------------------------------------------------------------
+CREATE TABLE facilities (
+    id                BIGINT        NOT NULL AUTO_INCREMENT,
+    name              VARCHAR(100)  NOT NULL,
+    category          VARCHAR(20)   NOT NULL,
+    latitude          DOUBLE        NOT NULL,
+    longitude         DOUBLE        NOT NULL,
+    road_address      VARCHAR(200)  NULL,
+    lot_address       VARCHAR(200)  NULL,
+    phone             VARCHAR(30)   NULL,
+    homepage          VARCHAR(500)  NULL,
+    closed_days       VARCHAR(100)  NULL,
+    opening_hours     VARCHAR(200)  NULL,
+    parking           BOOLEAN       NULL,
+    indoor            BOOLEAN       NULL,
+    outdoor           BOOLEAN       NULL,
+    pet_size          VARCHAR(100)  NULL,
+    pet_restrictions  VARCHAR(200)  NULL,
+    pet_extra_fee     VARCHAR(100)  NULL,
+    entrance_fee      VARCHAR(100)  NULL,
+    description       VARCHAR(200)  NULL,
+    source_updated_at DATE          NULL,
+    CONSTRAINT pk_facilities PRIMARY KEY (id)
+);
+
+-- 지도 화면 범위(위도·경도 사각형) 조회용
+CREATE INDEX idx_facilities_lat_lng ON facilities (latitude, longitude);

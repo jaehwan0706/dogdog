@@ -3,3 +3,51 @@ spring:
     name: dangsanchaek-server
   profiles:
     active: local
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        default_batch_fetch_size: 100
+
+# ---------------------------------------------------------------
+# 애플리케이션 설정 (비밀 값은 환경변수로 주입, 로컬은 application-local.yml 에서 덮어씀)
+# ---------------------------------------------------------------
+app:
+  jwt:
+    secret: ${JWT_SECRET:}             # 32바이트 이상 필수
+    issuer: dangsanchaek
+    access-token-ttl: 30m
+    refresh-token-ttl: 14d
+  oauth:
+    mock-enabled: false                # true 면 "mock:{id}:{email}" 소셜 토큰 허용 (로컬 테스트 전용)
+    google-client-ids: ${GOOGLE_CLIENT_IDS:}   # 콤마 구분 (iOS, Android, Web 클라이언트 ID)
+    apple-client-ids: ${APPLE_CLIENT_IDS:}     # 콤마 구분 (Bundle ID, Services ID)
+    web:
+      # 소셜 서비스가 로그인 후 돌아올 이 서버 주소. 콘솔에 {callback-base-url}/auth/oauth/{kakao|naver|google}/callback 등록
+      callback-base-url: ${OAUTH_CALLBACK_BASE_URL:}
+      # 로그인 결과를 돌려보낼 수 있는 앱 주소 (콤마 구분). "dangsanchaek://" 는 스킴만, "https://app.example.com" 은 출처 전체 비교
+      allowed-redirects: ${OAUTH_ALLOWED_REDIRECTS:dangsanchaek://}
+      kakao:
+        client-id: ${KAKAO_REST_API_KEY:}       # 카카오 REST API 키
+        client-secret: ${KAKAO_CLIENT_SECRET:}  # 콘솔에서 클라이언트 시크릿을 켰을 때만
+  payment:
+    mode: ${PAYMENT_MODE:toss}         # toss | mock
+    toss-secret-key: ${TOSS_SECRET_KEY:}
+    pending-order-ttl: 30m
+  admin:
+    emails: ${ADMIN_EMAILS:}           # 이 이메일로 회원가입하면 ADMIN 권한
+  storage:
+    local-dir: ${STORAGE_LOCAL_DIR:uploads}   # 업로드 사진 저장 폴더 (서버 실행 위치 기준)
+    url-ttl: 1h                               # 사진 URL(서명) 유효 시간
+  facility:
+    data-file: ${FACILITY_DATA_FILE:classpath:data/pet_facilities.csv.gz}   # 친화시설 공공데이터 (시작 시 테이블이 비어 있으면 가져옴)
+  park:
+    data-file: ${PARK_DATA_FILE:classpath:data/city_parks.csv.gz}   # 도시공원 공공데이터 (시작 시 테이블이 비어 있으면 가져옴)
+  public-data:
+    service-key: ${PUBLIC_DATA_SERVICE_KEY:}   # 공공데이터포털 일반 인증키 (기상청 단기예보·에어코리아). 없으면 예시 날씨·미세먼지
+  tmap:
+    app-key: ${TMAP_APP_KEY:}   # SK open API TMAP 앱 키 (보행자 경로안내). 없으면 코스 거리를 직선거리로 추정

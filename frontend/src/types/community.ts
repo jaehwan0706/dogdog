@@ -1,0 +1,84 @@
+// 백엔드 PostDtos 와 맞춘 타입
+
+export type PostCategory = 'FREE' | 'WALK_MATE' | 'CARE_SHARE';
+export type RecruitStatus = 'OPEN' | 'CLOSED';
+
+export type Author = { id: number; nickname: string; profileImageUrl: string | null };
+
+export type RecruitInfo = {
+  meetAt: string;
+  placeName: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  maxParticipants: number;
+  participantCount: number;
+  status: RecruitStatus;
+};
+
+export type PostSummary = {
+  id: number;
+  category: PostCategory;
+  title: string;
+  contentPreview: string;
+  thumbnailUrl: string | null;
+  author: Author;
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+  hidden: boolean; // 관리자 숨김 (작성자 본인에게만 보임)
+  recruit: RecruitInfo | null;
+  createdAt: string;
+};
+
+export type PostDetail = {
+  id: number;
+  category: PostCategory;
+  title: string;
+  content: string;
+  imageUrls: string[];
+  author: Author;
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+  mine: boolean;
+  participating: boolean;
+  hidden: boolean;
+  recruit: RecruitInfo | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PostCreateInput = {
+  category: PostCategory;
+  title: string;
+  content: string;
+  // WALK_MATE / CARE_SHARE 는 meetAt, maxParticipants 필수
+  meetAt?: string; // YYYY-MM-DDTHH:mm:ss
+  placeName?: string;
+  maxParticipants?: number;
+};
+
+// 수정은 PATCH 라 보내지 않은 값은 그대로 유지된다 (카테고리는 변경 불가)
+export type PostUpdateInput = Partial<Omit<PostCreateInput, 'category'>>;
+
+export type Comment = {
+  id: number;
+  parentId: number | null;
+  content: string;
+  author: Author | null; // 삭제된 댓글은 null
+  deleted: boolean;
+  hidden: boolean; // 관리자 숨김: content 가 안내 문구로 바뀌고 author 는 null
+  createdAt: string;
+  updatedAt: string;
+  replies: Comment[];
+};
+
+export type LikeResult = { postId: number; liked: boolean; likeCount: number };
+
+export type ParticipationResult = {
+  postId: number;
+  participating: boolean;
+  participantCount: number;
+  maxParticipants: number;
+  status: RecruitStatus;
+};
