@@ -107,12 +107,15 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
     });
 
     // 지도 이동·확대가 끝날 때마다 보이는 범위를 앱에 알림 (친화시설 조회용)
-    naver.maps.Event.addListener(map, 'idle', function () {
+    function reportViewport() {
       var bounds = map.getBounds();
       var sw = bounds.getSW();
       var ne = bounds.getNE();
       post({ type: 'cameraIdle', swLat: sw.lat(), swLng: sw.lng(), neLat: ne.lat(), neLng: ne.lng(), zoom: map.getZoom() });
-    });
+    }
+    naver.maps.Event.addListener(map, 'idle', reportViewport);
+    // 처음 열렸을 때는 idle 이 오지 않을 수 있어 한 번 직접 알림 (지도를 움직이기 전에도 친화시설이 보이도록)
+    reportViewport();
 
     function updateMyLocation(message) {
       var position = new naver.maps.LatLng(message.latitude, message.longitude);

@@ -126,12 +126,15 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
         // 사용자가 지도를 직접 움직이면 "내 위치 따라가기"를 끔
         maps.Event.addListener(map, 'dragstart', () => onUserGestureRef.current?.());
         // 지도 이동·확대가 끝날 때마다 보이는 범위를 알림 (친화시설 조회용)
-        maps.Event.addListener(map, 'idle', () => {
+        const reportViewport = () => {
           const bounds = map.getBounds();
           const sw = bounds.getSW();
           const ne = bounds.getNE();
           onCameraIdleRef.current?.({ swLat: sw.lat(), swLng: sw.lng(), neLat: ne.lat(), neLng: ne.lng(), zoom: map.getZoom() });
-        });
+        };
+        maps.Event.addListener(map, 'idle', reportViewport);
+        // 처음 열렸을 때는 idle 이 오지 않을 수 있어 한 번 직접 알림 (지도를 움직이기 전에도 친화시설이 보이도록)
+        reportViewport();
         mapRef.current = map;
         setIsReady(true);
       })

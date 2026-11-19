@@ -1,4 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { authService } from '../../api/auth/authService';
 import { userService } from '../../api/user/userService';
@@ -7,6 +9,7 @@ import { Screen } from '../../components/Screen';
 import { LoadState } from '../../components/shop/ShopParts';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import type { ProfileScreenProps } from '../../navigation/ProfileNavigator';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useDogs } from '../../store/dogStore';
 import { colors, radius, spacing, typography } from '../../theme';
 import { confirmAction, notify } from '../../utils/dialog';
@@ -15,6 +18,8 @@ import { dogSummary } from '../../utils/format';
 const providerLabel = { LOCAL: '이메일', KAKAO: '카카오', GOOGLE: 'Google', NAVER: '네이버', APPLE: 'Apple' } as const;
 
 export function ProfileScreen({ navigation }: ProfileScreenProps<'ProfileHome'>) {
+  // 산책 기록 화면은 탭 밖(최상위 스택)에 있어서 그쪽 navigation 으로 이동
+  const rootNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const me = useAsyncData(() => userService.getMe(), []);
   const { dogs } = useDogs();
 
@@ -69,7 +74,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'ProfileHome'>)
         {me.data?.role === 'ADMIN' ? <Menu icon="shield-account-outline" title="관리자" body="신고 처리, 회원·상품 관리" onPress={() => navigation.navigate('AdminHome')} /> : null}
         <Menu icon="file-document-outline" title="내가 쓴 글" body="커뮤니티에 남긴 글을 모아봐요" onPress={() => navigation.navigate('MyPosts')} />
         <Menu icon="account-cancel-outline" title="차단한 사용자" body="차단 목록을 확인하고 해제해요" onPress={() => navigation.navigate('BlockedUsers')} />
-        <Menu icon="calendar-check-outline" title="산책 기록" body="산책 기록 기능을 준비하고 있어요" />
+        <Menu icon="calendar-check-outline" title="산책 기록" body="지금까지 걸은 산책을 모아봐요" onPress={() => rootNavigation.navigate('WalkHistory')} />
         <Menu icon="logout" title="로그아웃" body="이 기기에서 로그아웃해요" onPress={() => authService.logout()} />
       </View>
       <Pressable accessibilityRole="button" onPress={withdraw} style={styles.withdraw}>
