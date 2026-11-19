@@ -11,8 +11,11 @@ const FLUSH_INTERVAL_MS = 30_000;
 const MAX_POINTS_PER_REQUEST = 500;
 // 오차가 이보다 큰 위치는 경로가 튀므로 버린다 (실내·건물 사이 등)
 const MAX_ACCURACY_METERS = 30;
-// 이보다 가까운 위치는 제자리 흔들림으로 보고 버린다
-const MIN_STEP_METERS = 3;
+// 직전 위치에서 이만큼, 그리고 이번 위치의 오차 반경 이상 떨어져야 실제 이동으로 본다.
+// GPS 는 가만히 있어도 오차 반경 안에서 계속 흔들리므로, 이보다 작은 이동을 더하면 거리가 부풀려진다
+const MIN_STEP_METERS = 5;
+// 직전 위치에서 이보다 빠르게 이동한 것으로 나오면 GPS 튐으로 보고 버린다 (뛰는 속도 ≈ 3~4 m/s)
+const MAX_SPEED_METERS_PER_SECOND = 6;
 
 export type RecorderPhase = 'preparing' | 'recording' | 'ending' | 'failed';
 
@@ -33,6 +36,8 @@ export function useWalkRecorder({ enabled, location, dogId }: { enabled: boolean
   const pending = useRef<WalkPoint[]>([]);
   const nextSeq = useRef(0);
   const lastPoint = useRef<WalkPoint | null>(null);
+  // 마지막으로 경로에 넣은 위치의 측정 시각 (이어받은 산책의 서버 좌표는 시각이 없어 null)
+  const lastPointTime = useRef<number | null>(null);
   const flushing = useRef(false);
 
   const begin = useCallback((walk: WalkDetail, isResumed: boolean) => {
@@ -42,6 +47,7 @@ export function useWalkRecorder({ enabled, location, dogId }: { enabled: boolean
     setRoute(walk.points);
     setResumed(isResumed);
     lastPoint.current = walk.points.at(-1) ?? null;
+    lastPointTime.current = null;
     nextSeq.current = (walk.points.at(-1)?.seq ?? -1) + 1;
     pending.current = [];
     setPhase('recording');
@@ -81,9 +87,17 @@ export function useWalkRecorder({ enabled, location, dogId }: { enabled: boolean
   useEffect(() => {
     if (phase !== 'recording' || !location) return;
     if (location.accuracy !== null && location.accuracy > MAX_ACCURACY_METERS) return;
-    if (lastPoint.current && distanceMeters(lastPoint.current, location) < MIN_STEP_METERS) return;
+    if (lastPoint.current) {
+      const step = distanceMeters(lastPoint.current, location);
+      if (step < Math.max(MIN_STEP_METERS, location.accuracy ?? 0)) return;
+      if (lastPointTime.current !== null) {
+        const seconds = (location.timestamp - lastPointTime.current) / 1000;
+        if (seconds > 0 && step / seconds > MAX_SPEED_METERS_PER_SECOND) return;
+      }
+    }
     const point: WalkPoint = { seq: nextSeq.current++, latitude: location.latitude, longitude: location.longitude };
     lastPoint.current = point;
+    lastPointTime.current = location.timestamp;
     pending.current.push(point);
     setRoute((current) => [...current, point]);
   }, [phase, location]);

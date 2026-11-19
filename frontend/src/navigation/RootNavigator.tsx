@@ -6,6 +6,9 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { MapScreen } from '../screens/map/MapScreen';
 import { WalkScreen } from '../screens/walk/WalkScreen';
 import { WalkResultScreen } from '../screens/walk/WalkResultScreen';
+import { WalkHistoryScreen } from '../screens/walk/WalkHistoryScreen';
+import { WalkTimeScreen } from '../screens/course/WalkTimeScreen';
+import { CourseScreen } from '../screens/course/CourseScreen';
 import { CommunityNavigator, type CommunityStackParamList } from './CommunityNavigator';
 import { ShopNavigator } from './ShopNavigator';
 import { ProfileNavigator } from './ProfileNavigator';
@@ -19,11 +22,25 @@ export type RootTabParamList = {
   프로필: undefined;
 };
 
-// 탭 위에 전체 화면으로 띄우는 화면: 산책 중(하단 탭 없이) → 산책 결과
+// 탭 위에 전체 화면으로 띄우는 화면: 산책 중(하단 탭 없이) → 산책 결과, 산책 기록 목록
+// 산책 화면에 띄우는 코스 안내
+export type WalkGuide = {
+  title: string;
+  // 왕복 예상 거리·시간
+  distanceMeters: number;
+  estimatedMinutes: number;
+  path: { latitude: number; longitude: number }[];
+};
+
 export type RootStackParamList = {
   Tabs: NavigatorScreenParams<RootTabParamList> | undefined;
-  Walk: undefined;
+  // guide: 코스 추천에서 고른 코스 (지도에 안내선으로 표시). 없으면 안내선 없이 기록만
+  Walk: { guide?: WalkGuide } | undefined;
   WalkResult: { walkId: number };
+  WalkHistory: undefined;
+  WalkTime: undefined;
+  // minutes: 목표 산책 시간 (추천 시간대의 권장 시간). 없으면 평소 산책 시간
+  Course: { minutes?: number } | undefined;
 };
 
 export type RootScreenProps<Name extends keyof RootStackParamList> = NativeStackScreenProps<RootStackParamList, Name>;
@@ -67,6 +84,9 @@ export function RootNavigator() {
         {/* 산책 중에는 옆으로 밀어서 닫히지 않게 함 (나가기는 화면 안의 버튼으로만) */}
         <Stack.Screen name="Walk" component={WalkScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="WalkResult" component={WalkResultScreen} />
+        <Stack.Screen name="WalkHistory" component={WalkHistoryScreen} />
+        <Stack.Screen name="WalkTime" component={WalkTimeScreen} />
+        <Stack.Screen name="Course" component={CourseScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

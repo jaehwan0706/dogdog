@@ -51,6 +51,9 @@ public enum ErrorCode {
     WALK_ALREADY_IN_PROGRESS(HttpStatus.CONFLICT, "이미 진행 중인 산책이 있습니다."),
     WALK_ALREADY_FINISHED(HttpStatus.CONFLICT, "이미 종료된 산책입니다."),
 
+    // 친화시설
+    FACILITY_NOT_FOUND(HttpStatus.NOT_FOUND, "시설 정보를 찾을 수 없습니다."),
+
     // 커뮤니티
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."),
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),

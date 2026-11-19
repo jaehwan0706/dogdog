@@ -25,3 +25,12 @@ app:
     emails: admin@test.dev,admin-mod@test.dev,admin-market@test.dev
   storage:
     local-dir: build/test-uploads
+  facility:
+    data-file: classpath:data/pet_facilities_test.csv
+  park:
+    data-file: classpath:data/city_parks_test.csv
+  # 환경변수에 실제 키가 있어도 테스트는 예시 데이터·직선거리로 (실제 API 확인은 *LiveTest)
+  public-data:
+    service-key: ""
+  tmap:
+    app-key: ""

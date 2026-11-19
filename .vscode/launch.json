@@ -1,0 +1,13 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-DangsanchaekApplication<dangsanchaek-server-backend>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/backend",
+            "mainClass": "com.dangsanchaek.DangsanchaekApplication",
+            "projectName": "dangsanchaek-server-backend",
+            "args": ""
+        }
+    ]
+}

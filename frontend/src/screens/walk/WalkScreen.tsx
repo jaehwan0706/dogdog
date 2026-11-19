@@ -24,10 +24,14 @@ import { pickPhoto, type PhotoSource } from '../../utils/pickPhoto';
 // 위치를 받기 전 기본으로 보여줄 좌표 (서울시청)
 const DEFAULT_CAMERA = { latitude: 37.5666, longitude: 126.9784, zoom: 16 };
 const KEEP_AWAKE_TAG = 'walk-recording';
+// 안내선을 닫을 때 지도에서 지우려고 빈 배열을 보냄 (매번 새 배열이면 다시 그리므로 상수)
+const EMPTY_GUIDE: { latitude: number; longitude: number }[] = [];
 
 // 산책 중 화면: 실시간 경로·거리·시간, 사진 핀 남기기, 종료/취소.
 // Expo Go 는 앱이 화면에 떠 있을 때만 위치를 받을 수 있어 산책 중에는 앱을 켜 두어야 한다
-export function WalkScreen({ navigation }: RootScreenProps<'Walk'>) {
+export function WalkScreen({ navigation, route }: RootScreenProps<'Walk'>) {
+  // 코스 추천에서 고른 코스. 지도에 안내선으로 보여 주고, 닫으면 안내선 없이 기록만
+  const [guide, setGuide] = useState(route.params?.guide ?? null);
   const dog = useMainDog();
   const { status, request } = useLocationPermission();
   const hasLocation = status === 'granted';
@@ -168,8 +172,23 @@ export function WalkScreen({ navigation }: RootScreenProps<'Walk'>) {
           follow={follow}
           onUserGesture={() => setFollow(false)}
           route={recorder.route}
+          guide={guide?.path ?? EMPTY_GUIDE}
           photoPins={walkPins}
         />
+        {guide && (
+          <View style={styles.guideBanner}>
+            <MaterialCommunityIcons name="map-marker-path" size={18} color={colors.forest} />
+            <View style={styles.guideText}>
+              <Text style={styles.guideTitle} numberOfLines={1}>{guide.title}</Text>
+              <Text style={styles.guideMeta}>
+                {formatDistance(recorder.distanceMeters)} / 왕복 {formatDistance(guide.distanceMeters)} · 약 {guide.estimatedMinutes}분
+              </Text>
+            </View>
+            <Pressable onPress={() => setGuide(null)} hitSlop={8} accessibilityRole="button" accessibilityLabel="코스 안내 닫기">
+              <MaterialCommunityIcons name="close" size={18} color={colors.inkSoft} />
+            </Pressable>
+          </View>
+        )}
         {location && (
           <Pressable style={styles.locationButton} onPress={() => setFollow(true)} accessibilityRole="button" accessibilityLabel="내 위치로 이동">
             <MaterialCommunityIcons name={follow ? 'crosshairs-gps' : 'crosshairs'} size={22} color={follow ? colors.forest : colors.inkSoft} />
@@ -250,6 +269,10 @@ const styles = StyleSheet.create({
   mapCard: { flex: 1, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.line },
   map: { flex: 1 },
   locationButton: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: 99, borderWidth: 1, height: 42, justifyContent: 'center', position: 'absolute', right: spacing.md, top: spacing.md, width: 42 },
+  guideBanner: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, left: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, position: 'absolute', right: spacing.md + 42 + spacing.sm, top: spacing.md },
+  guideText: { flex: 1 },
+  guideTitle: { ...typography.body, color: colors.ink, fontWeight: '600' },
+  guideMeta: { ...typography.caption, color: colors.inkSoft, fontVariant: ['tabular-nums'] },
   photoButton: { alignItems: 'center', backgroundColor: colors.forest, borderRadius: 99, bottom: spacing.md, elevation: 3, height: 52, justifyContent: 'center', position: 'absolute', right: spacing.md, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, width: 52 },
   overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(245, 247, 245, 0.7)', justifyContent: 'center', padding: spacing.lg },
   overlayBody: { alignItems: 'stretch', gap: spacing.md },

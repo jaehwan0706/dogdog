@@ -7,7 +7,18 @@ import {
   type MapError,
   type NaverWebMapProps,
 } from './naverMapCommon';
-import { MY_LOCATION_COLOR, PHOTO_PIN_ANCHOR, PHOTO_PIN_CSS, ROUTE_FIT_MARGIN, ROUTE_STYLE, naverMapScriptUrl } from './naverMapHtml';
+import {
+  FACILITY_MARKER_ANCHOR,
+  FACILITY_MARKER_CSS,
+  FACILITY_MARKER_STYLE,
+  MY_LOCATION_COLOR,
+  PHOTO_PIN_ANCHOR,
+  PHOTO_PIN_CSS,
+  GUIDE_STYLE,
+  ROUTE_FIT_MARGIN,
+  ROUTE_STYLE,
+  naverMapScriptUrl,
+} from './naverMapHtml';
 
 // 웹(npx expo start --web)용. react-native-webview 가 웹을 지원하지 않아서, 네이버 지도를 이 페이지에 직접 띄움
 // (iframe 으로 띄우면 페이지 주소가 about:srcdoc 이 되어 네이버 인증이 통과되지 않음)
@@ -28,7 +39,7 @@ function ensurePhotoPinStyle() {
   }
   const style = document.createElement('style');
   style.id = 'photo-pin-style';
-  style.textContent = PHOTO_PIN_CSS;
+  style.textContent = PHOTO_PIN_CSS + FACILITY_MARKER_CSS;
   document.head.appendChild(style);
 }
 
@@ -57,13 +68,15 @@ function loadNaverMaps(clientId: string): Promise<void> {
   return scriptPromise;
 }
 
-export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, fitRoute = false, style }: NaverWebMapProps) {
+export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<NaverMaps>(null);
   const myMarkerRef = useRef<NaverMaps>(null);
   const myCircleRef = useRef<NaverMaps>(null);
   const photoMarkersRef = useRef<NaverMaps[]>([]);
   const routeLineRef = useRef<NaverMaps>(null);
+  const guideLineRef = useRef<NaverMaps>(null);
+  const facilityMarkersRef = useRef<NaverMaps[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<MapError | null>(CLIENT_ID ? null : 'missingClientId');
 
@@ -73,6 +86,10 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
   onUserGestureRef.current = onUserGesture;
   const onPhotoPinPressRef = useRef(onPhotoPinPress);
   onPhotoPinPressRef.current = onPhotoPinPress;
+  const onFacilityPressRef = useRef(onFacilityPress);
+  onFacilityPressRef.current = onFacilityPress;
+  const onCameraIdleRef = useRef(onCameraIdle);
+  onCameraIdleRef.current = onCameraIdle;
 
   // 지도 생성
   useEffect(() => {
@@ -108,6 +125,13 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
         });
         // 사용자가 지도를 직접 움직이면 "내 위치 따라가기"를 끔
         maps.Event.addListener(map, 'dragstart', () => onUserGestureRef.current?.());
+        // 지도 이동·확대가 끝날 때마다 보이는 범위를 알림 (친화시설 조회용)
+        maps.Event.addListener(map, 'idle', () => {
+          const bounds = map.getBounds();
+          const sw = bounds.getSW();
+          const ne = bounds.getNE();
+          onCameraIdleRef.current?.({ swLat: sw.lat(), swLng: sw.lng(), neLat: ne.lat(), neLng: ne.lng(), zoom: map.getZoom() });
+        });
         mapRef.current = map;
         setIsReady(true);
       })
@@ -125,6 +149,8 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       myCircleRef.current = null;
       photoMarkersRef.current = [];
       routeLineRef.current = null;
+      guideLineRef.current = null;
+      facilityMarkersRef.current = [];
     };
   }, []);
 
@@ -191,6 +217,41 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
     });
   }, [isReady, photoPins]);
 
+  // 친화시설 마커: 목록이 바뀔 때마다 전부 지우고 다시 그림
+  useEffect(() => {
+    const maps = naverWindow.naver?.maps;
+    const map = mapRef.current;
+    if (!isReady || !maps || !map) {
+      return;
+    }
+    facilityMarkersRef.current.forEach((marker) => marker.setMap(null));
+    facilityMarkersRef.current = (facilities ?? []).map((facility) => {
+      const look = FACILITY_MARKER_STYLE[facility.category] ?? { emoji: '🐾', color: '#888' };
+      const element = document.createElement('div');
+      element.className = 'facility';
+      element.style.borderColor = look.color;
+      element.textContent = look.emoji;
+      const marker = new maps.Marker({
+        map,
+        position: new maps.LatLng(facility.latitude, facility.longitude),
+        icon: { content: element, anchor: new maps.Point(FACILITY_MARKER_ANCHOR.x, FACILITY_MARKER_ANCHOR.y) },
+        zIndex: 30,
+      });
+      maps.Event.addListener(marker, 'click', () => onFacilityPressRef.current?.(facility.id));
+      return marker;
+    });
+  }, [isReady, facilities]);
+
+  // 지정한 위치로 지도 이동
+  useEffect(() => {
+    const maps = naverWindow.naver?.maps;
+    const map = mapRef.current;
+    if (!isReady || !moveTo || !maps || !map) {
+      return;
+    }
+    map.morph(new maps.LatLng(moveTo.latitude, moveTo.longitude), moveTo.zoom ?? map.getZoom());
+  }, [isReady, moveTo]);
+
   // 산책 경로선
   useEffect(() => {
     const maps = naverWindow.naver?.maps;
@@ -209,6 +270,21 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       map.fitBounds(routeLineRef.current.getBounds(), { top: m, right: m, bottom: m, left: m });
     }
   }, [isReady, route, fitRoute]);
+
+  // 코스 안내선
+  useEffect(() => {
+    const maps = naverWindow.naver?.maps;
+    const map = mapRef.current;
+    if (!isReady || !guide || !maps || !map) {
+      return;
+    }
+    const path = guide.map((p) => new maps.LatLng(p.latitude, p.longitude));
+    if (!guideLineRef.current) {
+      guideLineRef.current = new maps.Polyline({ map, path, clickable: false, zIndex: 5, ...GUIDE_STYLE });
+    } else {
+      guideLineRef.current.setPath(path);
+    }
+  }, [isReady, guide]);
 
   if (error === 'missingClientId') {
     return <MapErrorView style={style} message={ERROR_MESSAGES[error]} />;

@@ -6,6 +6,8 @@ export type Coordinate = {
   longitude: number;
   // 오차 반경(m). 기기가 알려주지 않으면 null
   accuracy: number | null;
+  // 위치를 측정한 시각(ms)
+  timestamp: number;
 };
 
 // 위치 권한이 허용된 동안(enabled) 내 위치를 계속 받아온다.
@@ -23,11 +25,12 @@ export function useCurrentLocation(enabled: boolean) {
     Location.watchPositionAsync(
       // 산책 중 경로 기록까지 고려해 High, 5m 이상 움직였을 때만 갱신
       { accuracy: Location.Accuracy.High, distanceInterval: 5 },
-      ({ coords }) =>
+      ({ coords, timestamp }) =>
         setLocation({
           latitude: coords.latitude,
           longitude: coords.longitude,
           accuracy: coords.accuracy,
+          timestamp,
         }),
     )
       .then(sub => {
