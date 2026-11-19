@@ -53,7 +53,6 @@ export function LoginScreen() {
         <View style={styles.actions}>
           <SocialButton icon="google" label="Google로 계속하기" onPress={() => loginWithSocial('google')} />
           <SocialButton icon="message-text" label="카카오로 계속하기" onPress={() => loginWithSocial('kakao')} />
-          <SocialButton icon="alpha-n-box" label="네이버로 계속하기" onPress={() => loginWithSocial('naver')} />
           <SocialButton icon="email-outline" label="이메일로 로그인" onPress={() => setMode('emailLogin')} />
           <Pressable accessibilityRole="button" onPress={() => setMode('signUp')} style={styles.signupLink}>
             <Text style={styles.signupText}>계정이 없나요? <Text style={styles.signupAccent}>회원가입</Text></Text>
