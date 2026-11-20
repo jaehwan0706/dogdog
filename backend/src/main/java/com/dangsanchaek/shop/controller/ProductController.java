@@ -28,7 +28,7 @@ public class ProductController {
                                               @RequestParam(defaultValue = "0") int page,
                                               @RequestParam(defaultValue = "20") int size) {
         return productService.searchOnSale(category, keyword, linkedOnly,
-                PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, 50), Sort.by(Sort.Direction.DESC, "id")));
+                PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, 200), Sort.by(Sort.Direction.DESC, "id")));
     }
 
     @GetMapping("/{productId}")

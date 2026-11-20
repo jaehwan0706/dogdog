@@ -1,6 +1,6 @@
 // 백엔드 ShopDtos(com.dangsanchaek.shop.dto) 와 1:1 로 맞춘 타입
 
-export type ProductCategory = 'FOOD' | 'SNACK' | 'TOY' | 'WALK' | 'HYGIENE' | 'CLOTHING' | 'ETC';
+export type ProductCategory = 'FOOD' | 'SNACK' | 'TOY' | 'WALK' | 'HYGIENE' | 'BATH' | 'GROOMING' | 'HEALTH' | 'CLOTHING' | 'ETC';
 
 export type ProductStatus = 'ON_SALE' | 'HIDDEN';
 

@@ -55,13 +55,43 @@ function toPage<T>(content: T[], page: number, size: number): PageResponse<T> {
   return { content: content.slice(page * size, (page + 1) * size), page, size, totalElements: content.length, totalPages, hasNext: page + 1 < totalPages };
 }
 
+const searchGroups = [
+  ['목줄', '목걸이', '개목걸이', '리드줄', '산책줄', '자동리드줄', '하네스'],
+  ['배변봉투', '똥봉투', '산책봉투'],
+  ['사료', '건식사료', '강아지밥', '개밥'],
+  ['간식', '트릿', '육포', '껌', '져키'],
+  ['장난감', '노즈워크', '터그', '공놀이', '삑삑이'],
+  ['샴푸', '린스', '목욕'],
+  ['바리깡', '클리퍼', '이발기', '미용기'],
+  ['빗', '브러쉬', '브러시', '슬리커'],
+  ['옷', '의류', '조끼', '후리스', '패딩', '올인원'],
+];
+
+const categorySearchWords: Record<Product['category'], string> = {
+  FOOD: '사료 먹이 식사', SNACK: '간식 트릿', TOY: '장난감 놀이', WALK: '산책 외출',
+  HYGIENE: '위생 청소 배변', BATH: '목욕 샴푸', GROOMING: '미용 털관리 발톱',
+  HEALTH: '건강관리 영양제', CLOTHING: '의류 옷', ETC: '기타',
+};
+
+function normalizeSearch(value: string) {
+  return value.toLocaleLowerCase('ko-KR').replace(/\s+/g, '');
+}
+
+function matchesSearch(product: Product, keyword?: string) {
+  const normalizedKeyword = keyword ? normalizeSearch(keyword) : '';
+  if (!normalizedKeyword) return true;
+  const relatedGroup = searchGroups.find((group) => group.some((word) => normalizeSearch(word) === normalizedKeyword || normalizedKeyword.includes(normalizeSearch(word))));
+  const searchTerms = relatedGroup ? [normalizedKeyword, ...relatedGroup] : [normalizedKeyword];
+  const haystack = normalizeSearch(`${product.name} ${product.description ?? ''} ${categorySearchWords[product.category]}`);
+  return searchTerms.some((term) => haystack.includes(normalizeSearch(term)));
+}
+
 const now = () => new Date().toISOString();
 
 export const mockShopService: ShopService = {
   async getProducts({ category, keyword, linkedOnly, page = 0, size = 20 } = {}) {
-    const word = keyword?.trim();
     const filtered = products
-      .filter((p) => p.status === 'ON_SALE' && (!category || p.category === category) && (!word || p.name.includes(word)) && (!linkedOnly || !!p.affiliateUrl))
+      .filter((p) => p.status === 'ON_SALE' && (!category || p.category === category) && matchesSearch(p, keyword) && (!linkedOnly || !!p.affiliateUrl))
       .sort((a, b) => b.id - a.id);
     return delay(toPage(filtered, page, size));
   },

@@ -16,16 +16,26 @@ export function MarketScreen() {
   const [category, setCategory] = useState<ProductCategory | undefined>();
   const [searchInput, setSearchInput] = useState('');
   const [keyword, setKeyword] = useState<string | undefined>();
+  const [page, setPage] = useState(0);
   // 서버 연결 시에는 관리자가 승인된 제휴 링크를 등록한 상품만 공개한다.
   // 로컬 mock에서는 링크 등록 전에도 추천관 UI를 확인할 수 있다.
-  const products = useAsyncData(() => shopService.getProducts({ category, keyword, linkedOnly: !isMockShop }), [category, keyword]);
+  const products = useAsyncData(() => shopService.getProducts({ category, keyword, linkedOnly: !isMockShop, page, size: 12 }), [category, keyword, page]);
   const items = products.data?.content ?? [];
   const selectedCategory = category ? categoryLabel(category) : '전체';
 
-  const submitSearch = () => setKeyword(searchInput.trim() || undefined);
+  const submitSearch = () => {
+    setPage(0);
+    setKeyword(searchInput.trim() || undefined);
+  };
   const clearSearch = () => {
+    setPage(0);
     setSearchInput('');
     setKeyword(undefined);
+  };
+
+  const selectCategory = (nextCategory?: ProductCategory) => {
+    setPage(0);
+    setCategory(nextCategory);
   };
 
   // 탭에 돌아올 때 새로 등록된 상품 반영 (첫 진입은 useAsyncData 가 처리)
@@ -94,9 +104,9 @@ export function MarketScreen() {
       </View>
 
       <View style={styles.categoryRow}>
-        <CategoryChip label="전체" icon="view-grid-outline" active={!category} onPress={() => setCategory(undefined)} />
+        <CategoryChip label="전체" icon="view-grid-outline" active={!category} onPress={() => selectCategory(undefined)} />
         {productCategories.map((c) => (
-          <CategoryChip key={c.value} label={c.label} icon={c.icon} active={category === c.value} onPress={() => setCategory(c.value)} />
+          <CategoryChip key={c.value} label={c.label} icon={c.icon} active={category === c.value} onPress={() => selectCategory(c.value)} />
         ))}
       </View>
 
@@ -105,12 +115,38 @@ export function MarketScreen() {
           <Text style={styles.sectionTitle}>{keyword ? `'${keyword}' 검색 결과` : `${selectedCategory} 추천`}</Text>
         {products.data ? <Text style={styles.sectionSubtitle}>{products.data.totalElements}개의 상품을 준비했어요</Text> : null}
         </View>
-        {(category || keyword) ? <Pressable accessibilityRole="button" onPress={() => { setCategory(undefined); clearSearch(); }}><Text style={styles.resetText}>전체보기</Text></Pressable> : null}
+        {(category || keyword) ? <Pressable accessibilityRole="button" onPress={() => { selectCategory(undefined); clearSearch(); }}><Text style={styles.resetText}>전체보기</Text></Pressable> : null}
       </View>
 
       {items.length > 0 && !products.error
         ? <View style={styles.productGrid}>{items.map((product) => <ProductCard key={product.id} product={product} />)}</View>
         : <LoadState loading={products.loading} error={products.error} empty emptyText={keyword ? '검색 결과가 없어요.' : '준비 중인 상품이에요.'} onRetry={products.reload} />}
+
+      {products.data && products.data.totalPages > 1 ? (
+        <View style={styles.pagination}>
+          <Pressable
+            accessibilityLabel="이전 상품 페이지"
+            accessibilityRole="button"
+            disabled={page === 0 || products.loading}
+            onPress={() => setPage((current) => Math.max(0, current - 1))}
+            style={({ pressed }) => [styles.pageButton, (page === 0 || products.loading) && styles.pageButtonDisabled, pressed && styles.pressed]}
+          >
+            <MaterialCommunityIcons name="chevron-left" size={19} color={page === 0 ? colors.inkFaint : colors.forest} />
+            <Text style={[styles.pageButtonText, page === 0 && styles.pageButtonTextDisabled]}>이전</Text>
+          </Pressable>
+          <Text style={styles.pageStatus}>{page + 1} / {products.data.totalPages}</Text>
+          <Pressable
+            accessibilityLabel="다음 상품 페이지"
+            accessibilityRole="button"
+            disabled={!products.data.hasNext || products.loading}
+            onPress={() => setPage((current) => current + 1)}
+            style={({ pressed }) => [styles.pageButton, (!products.data?.hasNext || products.loading) && styles.pageButtonDisabled, pressed && styles.pressed]}
+          >
+            <Text style={[styles.pageButtonText, !products.data.hasNext && styles.pageButtonTextDisabled]}>다음</Text>
+            <MaterialCommunityIcons name="chevron-right" size={19} color={products.data.hasNext ? colors.forest : colors.inkFaint} />
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={styles.marketFooter}>
         <MaterialCommunityIcons name="shield-check-outline" size={19} color={colors.forest} />
@@ -161,16 +197,11 @@ function ProductCard({ product }: { product: Product }) {
   return (
     <Pressable accessibilityRole={hasLink ? 'link' : 'button'} accessibilityLabel={`${product.name} ${hasLink ? '쿠팡에서 보기' : '링크 준비 중'}`} onPress={openProduct} style={({ pressed }) => [styles.product, pressed && styles.pressed]}>
       <View style={styles.productImage}>
-        {product.imageUrl ? <Image source={{ uri: product.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : <MaterialCommunityIcons name={categoryIcon(product.category)} size={44} color={colors.forest} />}
+        {product.imageUrl ? <Image source={{ uri: product.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" /> : <MaterialCommunityIcons name={categoryIcon(product.category)} size={44} color={colors.forest} />}
         <View style={styles.categoryBadge}><Text style={styles.categoryBadgeText}>{categoryLabel(product.category)}</Text></View>
-        <View style={[styles.externalBadge, !hasLink && styles.externalBadgePending]}><MaterialCommunityIcons name={hasLink ? 'open-in-new' : 'clock-outline'} size={12} color={colors.white} /></View>
       </View>
       <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
       {product.description ? <Text style={styles.productDescription} numberOfLines={1}>{product.description}</Text> : null}
-      <View style={styles.productLinkRow}>
-        <Text style={[styles.productLinkText, !hasLink && styles.productLinkTextMuted]}>{hasLink ? '쿠팡에서 보기' : '링크 준비 중'}</Text>
-        <MaterialCommunityIcons name={hasLink ? 'chevron-right' : 'clock-outline'} size={15} color={hasLink ? colors.forest : colors.inkFaint} />
-      </View>
     </Pressable>
   );
 }
@@ -182,9 +213,10 @@ const styles = StyleSheet.create({
   partnerNotice: { alignItems: 'center', backgroundColor: colors.forestSoft, borderRadius: radius.md, flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm }, partnerNoticeText: { color: colors.forestDeep, flex: 1, fontSize: 11, lineHeight: 16 },
   purchaseGuide: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.xs }, purchaseGuideText: { color: colors.inkSoft, flex: 1, fontSize: 12, lineHeight: 18 },
   searchBox: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.lg, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, minHeight: 50, paddingHorizontal: spacing.md }, searchInput: { color: colors.ink, flex: 1, ...typography.body, paddingVertical: spacing.sm },
-  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing.md }, category: { alignItems: 'center', gap: 5, width: '23%' }, categoryIcon: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.pill, borderWidth: 1, height: 42, justifyContent: 'center', width: 42 }, categoryIconActive: { backgroundColor: colors.forest, borderColor: colors.forest }, categoryText: { color: colors.inkSoft, ...typography.caption }, categoryTextActive: { color: colors.forest, fontWeight: '800' }, pressed: { opacity: 0.72 },
+  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing.md }, category: { alignItems: 'center', gap: 5, width: '20%' }, categoryIcon: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.pill, borderWidth: 1, height: 42, justifyContent: 'center', width: 42 }, categoryIconActive: { backgroundColor: colors.forest, borderColor: colors.forest }, categoryText: { color: colors.inkSoft, ...typography.caption }, categoryTextActive: { color: colors.forest, fontWeight: '800' }, pressed: { opacity: 0.72 },
   sectionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }, sectionTitle: { color: colors.ink, ...typography.heading }, sectionSubtitle: { color: colors.inkSoft, ...typography.caption, marginTop: 2 }, resetText: { color: colors.forest, ...typography.label }, productGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.lg }, product: { width: '47%' },
-  productImage: { alignItems: 'center', backgroundColor: colors.ivorySoft, borderRadius: radius.lg, height: 145, justifyContent: 'center', overflow: 'hidden' }, categoryBadge: { backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: radius.pill, left: spacing.sm, paddingHorizontal: 8, paddingVertical: 4, position: 'absolute', top: spacing.sm }, categoryBadgeText: { color: colors.forestDeep, fontSize: 10, fontWeight: '800' }, externalBadge: { alignItems: 'center', backgroundColor: colors.forest, borderRadius: radius.pill, bottom: spacing.sm, height: 25, justifyContent: 'center', position: 'absolute', right: spacing.sm, width: 25 }, externalBadgePending: { backgroundColor: colors.inkFaint },
-  productName: { color: colors.ink, ...typography.label, marginTop: spacing.sm }, productDescription: { color: colors.inkSoft, ...typography.caption, marginTop: 2 }, productLinkRow: { alignItems: 'center', flexDirection: 'row', gap: 2, marginTop: spacing.xs }, productLinkText: { color: colors.forest, fontSize: 12, fontWeight: '700' }, productLinkTextMuted: { color: colors.inkFaint },
+  productImage: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.lg, borderWidth: 1, height: 180, justifyContent: 'center', overflow: 'hidden' }, categoryBadge: { backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: radius.pill, left: spacing.sm, paddingHorizontal: 8, paddingVertical: 4, position: 'absolute', top: spacing.sm }, categoryBadgeText: { color: colors.forestDeep, fontSize: 10, fontWeight: '800' },
+  productName: { color: colors.ink, ...typography.label, marginTop: spacing.sm }, productDescription: { color: colors.inkSoft, ...typography.caption, marginTop: 2 },
+  pagination: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.sm }, pageButton: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.pill, borderWidth: 1, flexDirection: 'row', minHeight: 42, paddingHorizontal: spacing.md }, pageButtonDisabled: { backgroundColor: colors.ivorySoft }, pageButtonText: { color: colors.forest, fontSize: 13, fontWeight: '700' }, pageButtonTextDisabled: { color: colors.inkFaint }, pageStatus: { color: colors.inkSoft, fontSize: 13, fontWeight: '700' },
   marketFooter: { alignItems: 'flex-start', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, padding: spacing.md }, marketFooterText: { color: colors.inkSoft, flex: 1, fontSize: 11, lineHeight: 17 },
 });

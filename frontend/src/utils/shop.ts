@@ -10,6 +10,9 @@ export const productCategories: { value: ProductCategory; label: string; icon: I
   { value: 'SNACK', label: '간식', icon: 'bone' },
   { value: 'TOY', label: '장난감', icon: 'tennis-ball' },
   { value: 'HYGIENE', label: '위생', icon: 'shower-head' },
+  { value: 'BATH', label: '목욕', icon: 'bathtub-outline' },
+  { value: 'GROOMING', label: '미용', icon: 'content-cut' },
+  { value: 'HEALTH', label: '건강관리', icon: 'heart-pulse' },
   { value: 'CLOTHING', label: '의류', icon: 'tshirt-crew-outline' },
   { value: 'ETC', label: '기타', icon: 'dots-horizontal-circle-outline' },
 ];

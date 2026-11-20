@@ -139,7 +139,7 @@ CREATE TABLE post_participants (
 
 -- ---------------------------------------------------------------------
 -- 애완용품 마켓: 상품 (Product)
---   category : FOOD | SNACK | TOY | WALK | HYGIENE | CLOTHING | ETC
+--   category : FOOD | SNACK | TOY | WALK | HYGIENE | BATH | GROOMING | HEALTH | CLOTHING | ETC
 --   status   : ON_SALE | HIDDEN
 -- ---------------------------------------------------------------------
 CREATE TABLE products (
