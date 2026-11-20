@@ -7,9 +7,8 @@ import type { ShopService } from './shopService';
 // - 주문 생성 시 재고 차감 + 장바구니에서 제거, 결제 승인 시 PAID, 취소 시 재고 복구
 // - paymentKey 가 "fail" 로 시작하면 결제 승인 실패 (백엔드 MockPaymentGateway 와 동일)
 
-// 파트너스 승인 전 개발 데이터에는 실제 제휴 링크를 넣지 않는다.
-// 관리자에서 승인된 링크를 등록한 상품만 출시 화면에서 외부 이동이 가능하다.
-const products: Product[] = mockProducts.map((product) => ({ ...product, affiliateUrl: null }));
+// 파트너스 링크가 등록된 개발 상품은 실제 외부 이동을 확인하고, 나머지는 준비 상태로 표시한다.
+const products: Product[] = mockProducts.map((product) => ({ ...product, affiliateUrl: product.affiliateUrl ?? null }));
 let cartRows: { cartItemId: number; productId: number; quantity: number }[] = [];
 const orders: (Order & { paymentKey?: string })[] = [];
 let nextCartItemId = 1;
