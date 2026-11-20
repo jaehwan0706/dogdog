@@ -40,6 +40,11 @@ function extractDirectImage(html: string) {
   return match?.[1] ?? null;
 }
 
+function extractIframeLink(html: string) {
+  const match = decodeHtml(html).match(/<iframe[^>]+src=["'](https:\/\/[^"']+)["']/i);
+  return match?.[1] ?? null;
+}
+
 // 쿠팡 제휴 상품 등록(productId 없음)·수정. 이미지는 업로드 기능 전까지 이미지 주소(URL)로 입력한다.
 export function AdminProductEditScreen({ navigation, route }: ProfileScreenProps<'AdminProductEdit'>) {
   const { productId } = route.params;
@@ -76,7 +81,7 @@ export function AdminProductEditScreen({ navigation, route }: ProfileScreenProps
   const canSave = name.trim() !== '' && category && validAffiliateUrl && validImageUrl;
 
   const importPartnerHtml = () => {
-    const extractedLink = extractQueryUrl(partnerHtml, 'linkUrl');
+    const extractedLink = extractQueryUrl(partnerHtml, 'linkUrl') ?? extractIframeLink(partnerHtml);
     const extractedImage = extractQueryUrl(partnerHtml, 'productImage') ?? extractDirectImage(partnerHtml);
 
     if (extractedLink && coupangLinkPattern.test(extractedLink)) setAffiliateUrl(extractedLink);
@@ -87,6 +92,8 @@ export function AdminProductEditScreen({ navigation, route }: ProfileScreenProps
 
     if (!extractedLink && !extractedImage) {
       setError('파트너스 HTML에서 상품 링크나 이미지 주소를 찾지 못했어요. 이미지 + 텍스트 HTML 전체를 복사해 주세요.');
+    } else if (extractedLink && !extractedImage) {
+      setError('제휴 링크는 가져왔어요. 이 iframe에는 사진 주소가 없으므로 쿠팡 파트너스의 ‘이미지 + 텍스트 HTML’을 복사하거나 이미지 URL을 직접 입력해 주세요.');
     } else {
       setError(null);
     }
