@@ -40,6 +40,16 @@ function extractDirectImage(html: string) {
   return match?.[1] ?? null;
 }
 
+function extractAnchorLink(html: string) {
+  const match = decodeHtml(html).match(/<a[^>]+href=["'](https:\/\/[^"']+)["']/i);
+  return match?.[1] ?? null;
+}
+
+function extractImageAlt(html: string) {
+  const match = decodeHtml(html).match(/<img[^>]+alt=["']([^"']+)["']/i);
+  return match?.[1]?.trim() ?? null;
+}
+
 function extractIframeLink(html: string) {
   const match = decodeHtml(html).match(/<iframe[^>]+src=["'](https:\/\/[^"']+)["']/i);
   return match?.[1] ?? null;
@@ -81,10 +91,12 @@ export function AdminProductEditScreen({ navigation, route }: ProfileScreenProps
   const canSave = name.trim() !== '' && category && validAffiliateUrl && validImageUrl;
 
   const importPartnerHtml = () => {
-    const extractedLink = extractQueryUrl(partnerHtml, 'linkUrl') ?? extractIframeLink(partnerHtml);
+    const extractedLink = extractQueryUrl(partnerHtml, 'linkUrl') ?? extractAnchorLink(partnerHtml) ?? extractIframeLink(partnerHtml);
     const extractedImage = extractQueryUrl(partnerHtml, 'productImage') ?? extractDirectImage(partnerHtml);
+    const extractedName = extractImageAlt(partnerHtml);
 
     if (extractedLink && coupangLinkPattern.test(extractedLink)) setAffiliateUrl(extractedLink);
+    if (extractedName && !name.trim()) setName(extractedName.slice(0, 100));
     if (extractedImage && secureUrlPattern.test(extractedImage)) {
       setImageUrl(extractedImage);
       setImageFailed(false);
