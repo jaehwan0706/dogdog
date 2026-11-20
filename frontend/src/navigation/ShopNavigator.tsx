@@ -1,18 +1,12 @@
 import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MarketScreen } from '../screens/shop/MarketScreen';
-import { ProductDetailScreen } from '../screens/shop/ProductDetailScreen';
-import { CartScreen } from '../screens/shop/CartScreen';
-import { CheckoutScreen } from '../screens/shop/CheckoutScreen';
-import { PaymentScreen } from '../screens/shop/PaymentScreen';
-import { OrderListScreen } from '../screens/shop/OrderListScreen';
-import { OrderDetailScreen } from '../screens/shop/OrderDetailScreen';
 
-// 마켓 탭 내부 이동: 홈 → 상세 → 장바구니 → 주문서 → 결제 → 주문 상세
+// 1차 출시에서는 자체 주문/결제를 제공하지 않고 쿠팡 제휴 추천관만 노출한다.
 export type ShopStackParamList = {
   MarketHome: undefined;
+  // 아래 화면은 향후 자체 쇼핑 전환을 위해 타입만 유지한다. 1차 출시 네비게이터에는 등록하지 않는다.
   ProductDetail: { productId: number };
   Cart: undefined;
-  // cartItemIds(장바구니 주문) 또는 items(바로 구매) 중 하나
   Checkout: { cartItemIds: number[] } | { items: { productId: number; quantity: number }[] };
   Payment: { orderNo: string };
   OrderList: undefined;
@@ -27,13 +21,6 @@ export function ShopNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MarketHome" component={MarketScreen} />
-      <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
-      <Stack.Screen name="Cart" component={CartScreen} />
-      <Stack.Screen name="Checkout" component={CheckoutScreen} />
-      {/* 결제 중 뒤로 스와이프로 빠져나가지 않도록 제스처 비활성 */}
-      <Stack.Screen name="Payment" component={PaymentScreen} options={{ gestureEnabled: false }} />
-      <Stack.Screen name="OrderList" component={OrderListScreen} />
-      <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
     </Stack.Navigator>
   );
 }

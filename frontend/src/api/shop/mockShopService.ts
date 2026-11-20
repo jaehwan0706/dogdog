@@ -7,7 +7,9 @@ import type { ShopService } from './shopService';
 // - 주문 생성 시 재고 차감 + 장바구니에서 제거, 결제 승인 시 PAID, 취소 시 재고 복구
 // - paymentKey 가 "fail" 로 시작하면 결제 승인 실패 (백엔드 MockPaymentGateway 와 동일)
 
-const products: Product[] = mockProducts.map((product) => ({ ...product, affiliateUrl: 'https://www.coupang.com' }));
+// 파트너스 승인 전 개발 데이터에는 실제 제휴 링크를 넣지 않는다.
+// 관리자에서 승인된 링크를 등록한 상품만 출시 화면에서 외부 이동이 가능하다.
+const products: Product[] = mockProducts.map((product) => ({ ...product, affiliateUrl: null }));
 let cartRows: { cartItemId: number; productId: number; quantity: number }[] = [];
 const orders: (Order & { paymentKey?: string })[] = [];
 let nextCartItemId = 1;
@@ -57,10 +59,10 @@ function toPage<T>(content: T[], page: number, size: number): PageResponse<T> {
 const now = () => new Date().toISOString();
 
 export const mockShopService: ShopService = {
-  async getProducts({ category, keyword, page = 0, size = 20 } = {}) {
+  async getProducts({ category, keyword, linkedOnly, page = 0, size = 20 } = {}) {
     const word = keyword?.trim();
     const filtered = products
-      .filter((p) => p.status === 'ON_SALE' && (!category || p.category === category) && (!word || p.name.includes(word)))
+      .filter((p) => p.status === 'ON_SALE' && (!category || p.category === category) && (!word || p.name.includes(word)) && (!linkedOnly || !!p.affiliateUrl))
       .sort((a, b) => b.id - a.id);
     return delay(toPage(filtered, page, size));
   },

@@ -16,7 +16,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             where (:status is null or p.status = :status)
               and (:category is null or p.category = :category)
               and (:keyword is null or p.name like concat('%', :keyword, '%'))
-              and (:linkedOnly = false or p.affiliateUrl is not null)
+              and (:linkedOnly = false or (p.affiliateUrl is not null and p.affiliateUrl <> ''))
             """)
     Page<Product> search(ProductStatus status, ProductCategory category, String keyword, boolean linkedOnly,
                          Pageable pageable);

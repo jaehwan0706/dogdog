@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { BackHandler, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { authService } from '../../api/auth/authService';
 import { AppButton } from '../../components/AppButton';
@@ -51,13 +51,14 @@ export function LoginScreen() {
         </View>
 
         <View style={styles.actions}>
-          <SocialButton icon="google" label="Google로 계속하기" onPress={() => loginWithSocial('google')} />
-          <SocialButton icon="message-text" label="카카오로 계속하기" onPress={() => loginWithSocial('kakao')} />
-          <SocialButton icon="email-outline" label="이메일로 로그인" onPress={() => setMode('emailLogin')} />
+          <SocialButton disabled={socialBusy} icon="google" label="Google로 계속하기" onPress={() => loginWithSocial('google')} />
+          <SocialButton disabled={socialBusy} icon="message-text" label="카카오로 계속하기" onPress={() => loginWithSocial('kakao')} />
+          <SocialButton disabled={socialBusy} icon="email-outline" label="이메일로 로그인" onPress={() => setMode('emailLogin')} />
           <Pressable accessibilityRole="button" onPress={() => setMode('signUp')} style={styles.signupLink}>
             <Text style={styles.signupText}>계정이 없나요? <Text style={styles.signupAccent}>회원가입</Text></Text>
           </Pressable>
           {socialError ? <Text style={styles.errorText}>{socialError}</Text> : null}
+          {socialBusy ? <Text style={styles.loginHint}>인증을 취소하려면 열린 창의 닫기 또는 뒤로가기를 눌러주세요.</Text> : null}
         </View>
 
         <Text style={styles.legal}>계속하면 이용약관 및 개인정보처리방침에 동의하게 됩니다.</Text>
@@ -75,6 +76,15 @@ function EmailAuthScreen({ mode, onBack, onSwitch }: { mode: 'emailLogin' | 'sig
 
   const isSignUp = mode === 'signUp';
   const canSubmit = email.trim() !== '' && password !== '' && (!isSignUp || name.trim() !== '');
+
+  // 이 화면은 React Navigation 바깥의 로컬 상태로 열리므로 안드로이드 뒤로가기를 직접 처리한다.
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      onBack();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [onBack]);
 
   const submit = async () => {
     setSubmitting(true);
@@ -95,8 +105,9 @@ function EmailAuthScreen({ mode, onBack, onSwitch }: { mode: 'emailLogin' | 'sig
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.formPage}>
-        <Pressable accessibilityRole="button" onPress={onBack} style={styles.backButton}>
+        <Pressable accessibilityLabel="로그인 방법 선택으로 돌아가기" accessibilityRole="button" onPress={onBack} style={styles.backButton}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={colors.ivory} />
+          <Text style={styles.backButtonText}>로그인 방법 선택</Text>
         </Pressable>
         <Text style={styles.formTitle}>{mode === 'emailLogin' ? '이메일로 로그인' : '계정 만들기'}</Text>
         <Text style={styles.formDescription}>{mode === 'emailLogin' ? '댕산책에 다시 오신 것을 환영해요.' : '댕산책과 함께 산책을 시작해보세요.'}</Text>
@@ -115,8 +126,8 @@ function EmailAuthScreen({ mode, onBack, onSwitch }: { mode: 'emailLogin' | 'sig
   );
 }
 
-function SocialButton({ icon, label, onPress }: { icon: 'google' | 'message-text' | 'alpha-n-box' | 'email-outline'; label: string; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.socialButton, pressed && styles.pressed]}><MaterialCommunityIcons name={icon} size={20} color={colors.ivory} /><Text style={styles.socialText}>{label}</Text></Pressable>;
+function SocialButton({ icon, label, disabled = false, onPress }: { icon: 'google' | 'message-text' | 'alpha-n-box' | 'email-outline'; label: string; disabled?: boolean; onPress: () => void }) {
+  return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.socialButton, disabled && styles.disabled, pressed && styles.pressed]}><MaterialCommunityIcons name={icon} size={20} color={colors.ivory} /><Text style={styles.socialText}>{label}</Text></Pressable>;
 }
 
 const styles = StyleSheet.create({
@@ -140,11 +151,14 @@ const styles = StyleSheet.create({
   legal: { ...typography.caption, color: '#8E9B91', paddingTop: spacing.lg, textAlign: 'center' },
   pressed: { opacity: 0.7 },
   formPage: { flex: 1, padding: spacing.xl },
-  backButton: { marginBottom: spacing.section },
+  backButton: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.section, minHeight: 44 },
+  backButtonText: { ...typography.body, color: colors.ivory, fontWeight: '700' },
   formTitle: { ...typography.display, color: colors.ivory },
   formDescription: { ...typography.body, color: '#B9C4BA', marginTop: spacing.sm },
   formFields: { gap: spacing.sm, marginTop: spacing.section },
   input: { backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, color: colors.ink, minHeight: 52, paddingHorizontal: spacing.lg },
   switchLink: { alignItems: 'center', marginTop: spacing.xl },
   errorText: { ...typography.caption, color: '#F2A7A5', textAlign: 'center' },
+  loginHint: { ...typography.caption, color: '#B9C4BA', textAlign: 'center' },
+  disabled: { opacity: 0.5 },
 });
