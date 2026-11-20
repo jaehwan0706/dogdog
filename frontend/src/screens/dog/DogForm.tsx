@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { dogService } from '../../api/dog/dogService';
 import { AppButton } from '../../components/AppButton';
+import { BreedAutocomplete } from '../../components/dog/BreedAutocomplete';
 import { dogStore } from '../../store/dogStore';
 import { colors, radius, spacing, typography } from '../../theme';
 import type { Dog, DogGender, DogInput } from '../../types/dog';
@@ -45,7 +46,7 @@ export function DogForm({ dog, submitLabel, onSaved }: { dog?: Dog; submitLabel:
   return (
     <View style={styles.form}>
       <Field label="이름 *"><TextInput onChangeText={setName} placeholder="예: 보리" placeholderTextColor={colors.inkFaint} style={styles.input} value={name} /></Field>
-      <Field label="견종"><TextInput onChangeText={setBreed} placeholder="예: 골든 리트리버" placeholderTextColor={colors.inkFaint} style={styles.input} value={breed} /></Field>
+      <Field label="견종"><BreedAutocomplete onChange={setBreed} value={breed} /></Field>
       <Field label="성별">
         <View style={styles.choices}>
           <Choice label="남아" active={gender === 'MALE'} onPress={() => setGender('MALE')} />
