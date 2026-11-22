@@ -12,6 +12,8 @@ export type ProductInput = {
   stock: number;
   imageUrl?: string;
   affiliateUrl?: string;
+  brand?: string;
+  isRocket?: boolean;
   status: ProductStatus;
 };
 

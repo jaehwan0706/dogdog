@@ -54,6 +54,8 @@ public class ProductService {
                 .stock(request.stock())
                 .imageUrl(request.imageUrl())
                 .affiliateUrl(request.affiliateUrl())
+                .brand(blankToNull(request.brand()))
+                .rocket(Boolean.TRUE.equals(request.isRocket()))
                 .status(request.status())
                 .build());
         return ProductResponse.from(product);
@@ -70,9 +72,15 @@ public class ProductService {
         if (request.stock() != null) product.changeStock(request.stock());
         if (request.imageUrl() != null) product.changeImageUrl(request.imageUrl());
         if (request.affiliateUrl() != null) product.changeAffiliateUrl(request.affiliateUrl());
+        if (request.brand() != null) product.changeBrand(blankToNull(request.brand()));
+        if (request.isRocket() != null) product.changeRocket(request.isRocket());
         if (request.status() != null) product.changeStatus(request.status());
         productRepository.flush();
         return ProductResponse.from(product);
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.strip();
     }
 
     private static String normalize(String keyword) {

@@ -12,6 +12,10 @@ import type { ProductCategory, ProductStatus } from '../../types/shop';
 import { productCategories } from '../../utils/shop';
 
 const categoryOptions = productCategories.map((c) => ({ value: c.value as ProductCategory | undefined, label: c.label }));
+const rocketOptions: { value: 'Y' | 'N' | undefined; label: string }[] = [
+  { value: 'N', label: '일반 배송' },
+  { value: 'Y', label: '로켓배송' },
+];
 const statusOptions: { value: ProductStatus | undefined; label: string }[] = [
   { value: 'ON_SALE', label: '노출' },
   { value: 'HIDDEN', label: '숨김' },
@@ -60,6 +64,8 @@ export function AdminProductEditScreen({ navigation, route }: ProfileScreenProps
   const { productId } = route.params;
   const [loading, setLoading] = useState(productId !== undefined);
   const [name, setName] = useState('');
+  const [brand, setBrand] = useState('');
+  const [rocket, setRocket] = useState<'Y' | 'N' | undefined>('N');
   const [category, setCategory] = useState<ProductCategory | undefined>('WALK');
   const [affiliateUrl, setAffiliateUrl] = useState('');
   const [description, setDescription] = useState('');
@@ -76,6 +82,8 @@ export function AdminProductEditScreen({ navigation, route }: ProfileScreenProps
     adminService.getProducts().then((page) => page.content.find((item) => item.id === productId) ?? shopService.getProduct(productId))
       .then((product) => {
         setName(product.name);
+        setBrand(product.brand ?? '');
+        setRocket(product.isRocket ? 'Y' : 'N');
         setCategory(product.category);
         setAffiliateUrl(product.affiliateUrl ?? '');
         setDescription(product.description ?? '');
@@ -121,6 +129,9 @@ export function AdminProductEditScreen({ navigation, route }: ProfileScreenProps
       description: description.trim() || undefined,
       imageUrl: imageUrl.trim(),
       affiliateUrl: affiliateUrl.trim(),
+      // 빈 문자열을 보내야 수정 시 브랜드를 지울 수 있다 (서버가 빈 값은 null 로 저장)
+      brand: brand.trim(),
+      isRocket: rocket === 'Y',
       status: status ?? 'ON_SALE',
     };
     setSaving(true);
@@ -140,7 +151,9 @@ export function AdminProductEditScreen({ navigation, route }: ProfileScreenProps
       {loading ? <LoadState loading error={null} onRetry={() => {}} /> : (
         <>
           <Field label="상품명 *"><TextInput maxLength={100} onChangeText={setName} placeholder="예: 반사 리드줄 1.5m" placeholderTextColor={colors.inkFaint} style={styles.input} value={name} /></Field>
+          <Field label="브랜드"><TextInput maxLength={50} onChangeText={setBrand} placeholder="예: 포조이" placeholderTextColor={colors.inkFaint} style={styles.input} value={brand} /></Field>
           <Field label="카테고리 *"><FilterChips options={categoryOptions} value={category} onChange={setCategory} /></Field>
+          <Field label="배송"><FilterChips options={rocketOptions} value={rocket} onChange={(value) => setRocket(value ?? 'N')} /></Field>
           <Field label="파트너스 HTML 자동 입력 (선택)">
             <Text style={styles.help}>쿠팡 파트너스의 ‘이미지 + 텍스트 → HTML 복사’ 내용을 붙여 넣으면 링크와 사진을 자동으로 채워요.</Text>
             <TextInput autoCapitalize="none" multiline onChangeText={setPartnerHtml} placeholder="<iframe ... 또는 <a ...>" placeholderTextColor={colors.inkFaint} style={[styles.input, styles.htmlInput]} textAlignVertical="top" value={partnerHtml} />

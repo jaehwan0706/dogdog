@@ -8,7 +8,12 @@ import type { ShopService } from './shopService';
 // - paymentKey 가 "fail" 로 시작하면 결제 승인 실패 (백엔드 MockPaymentGateway 와 동일)
 
 // 파트너스 링크가 등록된 개발 상품은 실제 외부 이동을 확인하고, 나머지는 준비 상태로 표시한다.
-const products: Product[] = mockProducts.map((product) => ({ ...product, affiliateUrl: product.affiliateUrl ?? null }));
+const products: Product[] = mockProducts.map((product) => ({
+  ...product,
+  affiliateUrl: product.affiliateUrl ?? null,
+  brand: product.brand ?? product.name.split(' ')[0] ?? null,
+  isRocket: product.isRocket ?? false,
+}));
 let cartRows: { cartItemId: number; productId: number; quantity: number }[] = [];
 const orders: (Order & { paymentKey?: string })[] = [];
 let nextCartItemId = 1;

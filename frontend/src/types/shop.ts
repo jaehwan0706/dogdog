@@ -17,6 +17,8 @@ export type Product = {
   soldOut: boolean;
   imageUrl: string | null;
   affiliateUrl: string | null; // 쿠팡 파트너스 링크
+  brand: string | null; // 카드에 표시하는 브랜드명
+  isRocket: boolean; // 로켓배송이면 카드에 배지
   status: ProductStatus;
   createdAt: string;
 };

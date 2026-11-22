@@ -433,9 +433,11 @@ class ApiFlowTest {
                 .andExpect(status().isBadRequest());
 
         Integer linked = JsonPath.read(call(post("/admin/products"), admin, """
-                {"name":"제휴 리드줄","category":"WALK","price":0,"stock":0,"affiliateUrl":"https://link.coupang.com/a/test1"}""")
+                {"name":"제휴 리드줄","category":"WALK","price":0,"stock":0,"affiliateUrl":"https://link.coupang.com/a/test1","brand":"포조이","isRocket":true}""")
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.affiliateUrl").value("https://link.coupang.com/a/test1"))
+                .andExpect(jsonPath("$.brand").value("포조이"))
+                .andExpect(jsonPath("$.isRocket").value(true))
                 .andReturn().getResponse().getContentAsString(), "$.id");
         Integer unlinked = JsonPath.read(call(post("/admin/products"), admin, """
                 {"name":"링크 없는 상품","category":"WALK","price":1000,"stock":1}""")
@@ -448,7 +450,12 @@ class ApiFlowTest {
         call(get("/products?size=50"), null, null).andExpect(jsonPath(byId.formatted(unlinked), hasSize(1)));
 
         call(patch("/admin/products/" + unlinked), admin, "{\"affiliateUrl\":\"https://www.coupang.com/vp/products/1\"}")
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.brand").doesNotExist())
+                .andExpect(jsonPath("$.isRocket").value(false));
+        call(patch("/admin/products/" + unlinked), admin, "{\"brand\":\"댕댕\",\"isRocket\":true}")
+                .andExpect(jsonPath("$.brand").value("댕댕"))
+                .andExpect(jsonPath("$.isRocket").value(true));
         call(get("/products?linkedOnly=true&size=50"), null, null).andExpect(jsonPath(byId.formatted(unlinked), hasSize(1)));
     }
 

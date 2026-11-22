@@ -37,6 +37,8 @@ public final class ShopDtos {
             @Size(max = 500) String imageUrl,
             @Size(max = 1000)
             @Pattern(regexp = AFFILIATE_URL_REGEX, message = "쿠팡 링크(https://…coupang.com, coupa.ng)만 등록할 수 있습니다.") String affiliateUrl,
+            @Size(max = 50) String brand,
+            Boolean isRocket,
             ProductStatus status
     ) {
     }
@@ -50,6 +52,8 @@ public final class ShopDtos {
             @Size(max = 500) String imageUrl,
             @Size(max = 1000)
             @Pattern(regexp = AFFILIATE_URL_REGEX, message = "쿠팡 링크(https://…coupang.com, coupa.ng)만 등록할 수 있습니다.") String affiliateUrl,
+            @Size(max = 50) String brand,
+            Boolean isRocket,
             ProductStatus status
     ) {
     }
@@ -64,12 +68,15 @@ public final class ShopDtos {
             boolean soldOut,
             String imageUrl,
             String affiliateUrl,
+            String brand,
+            boolean isRocket,
             ProductStatus status,
             LocalDateTime createdAt
     ) {
         public static ProductResponse from(Product p) {
             return new ProductResponse(p.getId(), p.getName(), p.getDescription(), p.getCategory(), p.getPrice(),
-                    p.getStock(), p.getStock() <= 0, p.getImageUrl(), p.getAffiliateUrl(), p.getStatus(), p.getCreatedAt());
+                    p.getStock(), p.getStock() <= 0, p.getImageUrl(), p.getAffiliateUrl(), p.getBrand(), p.isRocket(),
+                    p.getStatus(), p.getCreatedAt());
         }
     }
 

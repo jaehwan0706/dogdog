@@ -3,7 +3,9 @@ import type { Product } from '../../types/shop';
 // 백엔드 연결 전 하드코딩 상품 (10.08 회의: 마켓 하드코딩). 이미지 URL 은 아직 없어 카테고리 아이콘으로 표시
 const createdAt = '2026-10-01T09:00:00';
 
-export const mockProducts: (Omit<Product, 'affiliateUrl'> & { affiliateUrl?: string | null })[] = [
+// brand 가 없으면 상품명 첫 단어, isRocket 이 없으면 false 로 채운다 (mockShopService)
+// TODO: 로켓배송 상품은 isRocket: true 로 표시 (서버 데이터는 관리자 메뉴에서 수정)
+export const mockProducts: (Omit<Product, 'affiliateUrl' | 'brand' | 'isRocket'> & { affiliateUrl?: string | null; brand?: string | null; isRocket?: boolean })[] = [
   {
     id: 134, name: '지위픽 전연령 스팀드라이 독 건식사료, 소, 800g, 1개',
     description: '소고기를 사용한 전연령 반려견용 스팀드라이 건식사료예요.', category: 'FOOD', price: 0, stock: 0, soldOut: false,

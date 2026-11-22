@@ -1,15 +1,15 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { isMockShop, shopService } from '../../api/shop/shopService';
 import { Screen } from '../../components/Screen';
+import { MarketProductGrid } from '../../components/shop/MarketProductGrid';
 import { LoadState } from '../../components/shop/ShopParts';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { colors, radius, spacing, typography } from '../../theme';
-import type { Product, ProductCategory } from '../../types/shop';
-import { confirmAction, notify } from '../../utils/dialog';
-import { categoryIcon, categoryLabel, productCategories } from '../../utils/shop';
+import type { ProductCategory } from '../../types/shop';
+import { categoryLabel, productCategories } from '../../utils/shop';
 
 // 쿠팡 제휴 마켓: 상품 사진을 누르면 쿠팡 파트너스 링크로 이동한다. 상품은 관리자 메뉴에서 등록한다.
 export function MarketScreen() {
@@ -119,7 +119,7 @@ export function MarketScreen() {
       </View>
 
       {items.length > 0 && !products.error
-        ? <View style={styles.productGrid}>{items.map((product) => <ProductCard key={product.id} product={product} />)}</View>
+        ? <MarketProductGrid products={items} />
         : <LoadState loading={products.loading} error={products.error} empty emptyText={keyword ? '검색 결과가 없어요.' : '준비 중인 상품이에요.'} onRetry={products.reload} />}
 
       {products.data && products.data.totalPages > 1 ? (
@@ -167,45 +167,6 @@ function CategoryChip({ label, icon, active, onPress }: { label: string; icon: (
   );
 }
 
-function ProductCard({ product }: { product: Product }) {
-  const affiliateUrl = product.affiliateUrl?.trim();
-  const hasLink = !!affiliateUrl && /^https:\/\/([a-z0-9-]+\.)*(coupang\.com|coupa\.ng)(\/|$)/i.test(affiliateUrl);
-
-  const openProduct = async () => {
-    if (!hasLink) {
-      notify('제휴 링크 준비 중이에요', '승인된 상품 링크가 등록되면 쿠팡에서 확인할 수 있어요.');
-      return;
-    }
-
-    const supported = await Linking.canOpenURL(affiliateUrl);
-    if (!supported) {
-      notify('안전한 링크가 아니에요', '등록된 상품 링크를 확인해 주세요.');
-      return;
-    }
-
-    confirmAction({
-      title: '쿠팡으로 이동할까요?',
-      message: '구매와 결제는 쿠팡에서 진행되며 댕산책은 일정액의 수수료를 받을 수 있어요.',
-      confirmText: '쿠팡에서 보기',
-      cancelText: '취소',
-      onConfirm: () => {
-        Linking.openURL(affiliateUrl).catch(() => notify('쿠팡을 열지 못했어요', '잠시 후 다시 시도해 주세요.'));
-      },
-    });
-  };
-
-  return (
-    <Pressable accessibilityRole={hasLink ? 'link' : 'button'} accessibilityLabel={`${product.name} ${hasLink ? '쿠팡에서 보기' : '링크 준비 중'}`} onPress={openProduct} style={({ pressed }) => [styles.product, pressed && styles.pressed]}>
-      <View style={styles.productImage}>
-        {product.imageUrl ? <Image source={{ uri: product.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="contain" /> : <MaterialCommunityIcons name={categoryIcon(product.category)} size={44} color={colors.forest} />}
-        <View style={styles.categoryBadge}><Text style={styles.categoryBadgeText}>{categoryLabel(product.category)}</Text></View>
-      </View>
-      <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
-      {product.description ? <Text style={styles.productDescription} numberOfLines={1}>{product.description}</Text> : null}
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   hero: { alignItems: 'center', backgroundColor: colors.orangeSoft, borderRadius: radius.xl, flexDirection: 'row', justifyContent: 'space-between', minHeight: 170, overflow: 'hidden', padding: spacing.lg },
   heroCopy: { flex: 1, gap: spacing.xs }, heroBadge: { alignItems: 'center', flexDirection: 'row', gap: 4 }, heroBadgeText: { color: colors.orange, fontSize: 11, fontWeight: '800', letterSpacing: 0.6 },
@@ -214,9 +175,7 @@ const styles = StyleSheet.create({
   purchaseGuide: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.xs }, purchaseGuideText: { color: colors.inkSoft, flex: 1, fontSize: 12, lineHeight: 18 },
   searchBox: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.lg, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, minHeight: 50, paddingHorizontal: spacing.md }, searchInput: { color: colors.ink, flex: 1, ...typography.body, paddingVertical: spacing.sm },
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing.md }, category: { alignItems: 'center', gap: 5, width: '20%' }, categoryIcon: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.pill, borderWidth: 1, height: 42, justifyContent: 'center', width: 42 }, categoryIconActive: { backgroundColor: colors.forest, borderColor: colors.forest }, categoryText: { color: colors.inkSoft, ...typography.caption }, categoryTextActive: { color: colors.forest, fontWeight: '800' }, pressed: { opacity: 0.72 },
-  sectionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }, sectionTitle: { color: colors.ink, ...typography.heading }, sectionSubtitle: { color: colors.inkSoft, ...typography.caption, marginTop: 2 }, resetText: { color: colors.forest, ...typography.label }, productGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.lg }, product: { width: '47%' },
-  productImage: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.lg, borderWidth: 1, height: 180, justifyContent: 'center', overflow: 'hidden' }, categoryBadge: { backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: radius.pill, left: spacing.sm, paddingHorizontal: 8, paddingVertical: 4, position: 'absolute', top: spacing.sm }, categoryBadgeText: { color: colors.forestDeep, fontSize: 10, fontWeight: '800' },
-  productName: { color: colors.ink, ...typography.label, marginTop: spacing.sm }, productDescription: { color: colors.inkSoft, ...typography.caption, marginTop: 2 },
+  sectionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }, sectionTitle: { color: colors.ink, ...typography.heading }, sectionSubtitle: { color: colors.inkSoft, ...typography.caption, marginTop: 2 }, resetText: { color: colors.forest, ...typography.label },
   pagination: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.sm }, pageButton: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.pill, borderWidth: 1, flexDirection: 'row', minHeight: 42, paddingHorizontal: spacing.md }, pageButtonDisabled: { backgroundColor: colors.ivorySoft }, pageButtonText: { color: colors.forest, fontSize: 13, fontWeight: '700' }, pageButtonTextDisabled: { color: colors.inkFaint }, pageStatus: { color: colors.inkSoft, fontSize: 13, fontWeight: '700' },
   marketFooter: { alignItems: 'flex-start', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, padding: spacing.md }, marketFooterText: { color: colors.inkSoft, flex: 1, fontSize: 11, lineHeight: 17 },
 });

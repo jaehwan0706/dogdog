@@ -56,6 +56,14 @@ public class Product extends BaseTimeEntity {
     @Column(name = "affiliate_url", length = 1000)
     private String affiliateUrl;
 
+    /** 마켓 카드에 표시하는 브랜드명 */
+    @Column(length = 50)
+    private String brand;
+
+    /** 쿠팡 로켓배송 상품 여부 (카드에 배지 표시) */
+    @Column(name = "is_rocket", nullable = false)
+    private boolean rocket;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
@@ -63,7 +71,9 @@ public class Product extends BaseTimeEntity {
 
     @Builder
     private Product(String name, String description, ProductCategory category, int price, int stock,
-                    String imageUrl, String affiliateUrl, ProductStatus status) {
+                    String imageUrl, String affiliateUrl, String brand, boolean rocket, ProductStatus status) {
+        this.brand = brand;
+        this.rocket = rocket;
         this.name = name;
         this.description = description;
         this.category = category;
@@ -91,6 +101,8 @@ public class Product extends BaseTimeEntity {
     public void changeImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
     public void changeAffiliateUrl(String affiliateUrl) { this.affiliateUrl = affiliateUrl; }
+    public void changeBrand(String brand) { this.brand = brand; }
+    public void changeRocket(boolean rocket) { this.rocket = rocket; }
 
     public void changeStatus(ProductStatus status) { this.status = status; }
 }
