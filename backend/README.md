@@ -62,7 +62,7 @@ CLI 로 돌리고 싶으면: `npx newman run postman/dangsanchaek.postman_collec
 **구글 설정** (Google Cloud Console)
 1. 프로젝트를 만들고 **API 및 서비스 → OAuth 동의 화면**을 설정합니다 (외부, 범위는 기본 `openid`·`email`·`profile`). 게시 전 "테스트" 상태에서는 테스트 사용자로 추가한 구글 계정만 로그인할 수 있습니다.
 2. **사용자 인증 정보 → OAuth 클라이언트 ID 만들기 → 웹 애플리케이션**을 고르고, 승인된 리디렉션 URI 에 `{callback-base-url}/auth/oauth/google/callback` 을 등록합니다. 로컬은 `http://localhost:8090/auth/oauth/google/callback`.
-3. 발급된 클라이언트 ID·클라이언트 보안 비밀번호를 `application-local.yml` 의 `app.oauth.web.google.client-id`, `client-secret` 에 넣습니다 (운영: 환경 변수 `APP_OAUTH_WEB_GOOGLE_CLIENT_ID`, `APP_OAUTH_WEB_GOOGLE_CLIENT_SECRET`). 둘 다 있어야 구글 로그인이 켜지고, 이 클라이언트 ID 로 발급된 ID 토큰은 서버가 자동으로 허용합니다.
+3. 발급된 클라이언트 ID·클라이언트 보안 비밀번호를 `application-local.yml` 의 `app.oauth.web.google.client-id`, `client-secret` 에 넣습니다 (운영: 환경 변수 `APP_OAUTH_WEB_GOOGLE_CLIENTID`, `APP_OAUTH_WEB_GOOGLE_CLIENTSECRET` — 스프링 규칙상 `-` 없이 붙여 씀). 둘 다 있어야 구글 로그인이 켜지고, 이 클라이언트 ID 로 발급된 ID 토큰은 서버가 자동으로 허용합니다.
 4. 구글은 리디렉션 URI 에 사설 IP(`192.168.x.x`)를 허용하지 않으므로, 휴대폰 시험은 `localhost` 대신 도메인(배포 서버나 터널 주소)이 필요합니다.
 
 앱 로그인 화면에는 카카오·구글만 있습니다. 서버의 네이버·애플 검증 코드는 남아 있지만 쓰지 않습니다.

@@ -6,6 +6,7 @@ import com.dangsanchaek.community.domain.PostCategory;
 import com.dangsanchaek.community.domain.RecruitStatus;
 import com.dangsanchaek.community.dto.PostDtos.CommentCreateRequest;
 import com.dangsanchaek.community.dto.PostDtos.CommentResponse;
+import com.dangsanchaek.community.dto.PostDtos.JoinRequest;
 import com.dangsanchaek.community.dto.PostDtos.LikeResponse;
 import com.dangsanchaek.community.dto.PostDtos.ParticipantResponse;
 import com.dangsanchaek.community.dto.PostDtos.ParticipationResponse;
@@ -108,8 +109,9 @@ public class PostController {
     }
 
     @PostMapping("/posts/{postId}/participants")
-    public ParticipationResponse join(@LoginUser Long userId, @PathVariable Long postId) {
-        return recruitService.join(userId, postId);
+    public ParticipationResponse join(@LoginUser Long userId, @PathVariable Long postId,
+                                     @RequestBody(required = false) JoinRequest request) {
+        return recruitService.join(userId, postId, request != null && Boolean.TRUE.equals(request.liabilityAgreed()));
     }
 
     @DeleteMapping("/posts/{postId}/participants")

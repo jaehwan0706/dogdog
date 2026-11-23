@@ -241,10 +241,19 @@ class ApiFlowTest {
         call(post("/posts/" + postId + "/participants"), user2, null)
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("RECRUIT_CLOSED"));
 
-        // 품앗이도 동일하게 동작, 자유글에는 참여 불가
+        // 품앗이: 작성·참여 모두 면책 동의가 있어야 함. 자유글에는 참여 불가
         call(post("/posts"), author, """
                 {"category":"CARE_SHARE","title":"주말 돌봄 품앗이","content":"서로 봐줘요","meetAt":"%s","maxParticipants":3}"""
-                .formatted(meetAt)).andExpect(status().isCreated());
+                .formatted(meetAt)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("LIABILITY_AGREEMENT_REQUIRED"));
+        String care = call(post("/posts"), author, """
+                {"category":"CARE_SHARE","title":"주말 돌봄 품앗이","content":"서로 봐줘요","meetAt":"%s","maxParticipants":3,"liabilityAgreed":true}"""
+                .formatted(meetAt)).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String careParticipants = "/posts/" + JsonPath.read(care, "$.id") + "/participants";
+        call(post(careParticipants), user1, null)
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("LIABILITY_AGREEMENT_REQUIRED"));
+        call(post(careParticipants), user1, "{\"liabilityAgreed\":true}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.participating").value(true));
         String free = call(post("/posts"), author, "{\"category\":\"FREE\",\"title\":\"t\",\"content\":\"c\"}")
                 .andReturn().getResponse().getContentAsString();
         call(post("/posts/" + JsonPath.read(free, "$.id") + "/participants"), user2, null)

@@ -36,8 +36,14 @@ public final class PostDtos {
             @Size(max = 100) String placeName,
             @DecimalMin("-90.0") @DecimalMax("90.0") Double latitude,
             @DecimalMin("-180.0") @DecimalMax("180.0") Double longitude,
-            @Min(value = 1, message = "모집 인원은 1명 이상이어야 합니다.") @Max(value = 50) Integer maxParticipants
+            @Min(value = 1, message = "모집 인원은 1명 이상이어야 합니다.") @Max(value = 50) Integer maxParticipants,
+            /** 케어 품앗이(CARE_SHARE) 글은 면책 동의(true)가 필요 */
+            Boolean liabilityAgreed
     ) {
+    }
+
+    /** 모집 참여 신청. 케어 품앗이(CARE_SHARE)는 면책 동의(true)가 필요 */
+    public record JoinRequest(Boolean liabilityAgreed) {
     }
 
     /** 부분 수정: null 인 필드는 변경하지 않는다. 카테고리는 변경 불가. */

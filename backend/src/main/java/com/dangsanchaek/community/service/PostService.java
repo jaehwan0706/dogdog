@@ -40,6 +40,9 @@ public class PostService {
         if (request.category().isRecruit()) {
             validateRecruitFields(request.meetAt(), request.maxParticipants());
         }
+        if (request.category() == PostCategory.CARE_SHARE && !Boolean.TRUE.equals(request.liabilityAgreed())) {
+            throw new BusinessException(ErrorCode.LIABILITY_AGREEMENT_REQUIRED);
+        }
         Post post = postRepository.save(Post.builder()
                 .author(author)
                 .category(request.category())

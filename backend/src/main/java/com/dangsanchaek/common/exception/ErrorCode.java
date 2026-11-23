@@ -63,6 +63,7 @@ public enum ErrorCode {
     RECRUIT_FULL(HttpStatus.CONFLICT, "모집 인원이 가득 찼습니다."),
     ALREADY_PARTICIPATING(HttpStatus.CONFLICT, "이미 참여 신청한 모집입니다."),
     CANNOT_JOIN_OWN_POST(HttpStatus.BAD_REQUEST, "본인 게시글에는 참여 신청할 수 없습니다."),
+    LIABILITY_AGREEMENT_REQUIRED(HttpStatus.BAD_REQUEST, "케어 품앗이는 면책 사항에 동의해야 이용할 수 있습니다."),
     NOT_PARTICIPATING(HttpStatus.NOT_FOUND, "참여 신청 내역이 없습니다."),
     MAX_PARTICIPANTS_TOO_SMALL(HttpStatus.BAD_REQUEST, "모집 인원은 현재 참여 인원보다 적을 수 없습니다."),
     INVALID_PARENT_COMMENT(HttpStatus.BAD_REQUEST, "답글은 같은 게시글의 최상위 댓글에만 달 수 있습니다."),

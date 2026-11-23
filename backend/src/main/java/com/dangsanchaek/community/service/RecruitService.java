@@ -7,6 +7,7 @@ import com.dangsanchaek.common.exception.ErrorCode;
 import com.dangsanchaek.community.domain.Post;
 import com.dangsanchaek.community.domain.PostParticipant;
 import com.dangsanchaek.community.domain.RecruitStatus;
+import com.dangsanchaek.community.domain.PostCategory;
 import com.dangsanchaek.community.dto.PostDtos.ParticipantResponse;
 import com.dangsanchaek.community.dto.PostDtos.ParticipationResponse;
 import com.dangsanchaek.community.repository.PostParticipantRepository;
@@ -30,9 +31,12 @@ public class RecruitService {
     private final UserReader userReader;
 
     @Transactional
-    public ParticipationResponse join(Long userId, Long postId) {
+    public ParticipationResponse join(Long userId, Long postId, boolean liabilityAgreed) {
         User user = userReader.getActiveUser(userId);
         Post post = lockRecruitPost(postId);
+        if (post.getCategory() == PostCategory.CARE_SHARE && !liabilityAgreed) {
+            throw new BusinessException(ErrorCode.LIABILITY_AGREEMENT_REQUIRED);
+        }
         if (post.isWrittenBy(userId)) {
             throw new BusinessException(ErrorCode.CANNOT_JOIN_OWN_POST);
         }

@@ -8,6 +8,7 @@ import { AppButton } from '../../components/AppButton';
 import { AppCard } from '../../components/AppCard';
 import { AuthorRow, RecruitBadge, categoryLabel } from '../../components/community/PostCard';
 import { Screen } from '../../components/Screen';
+import { CARE_SHARE_LIABILITY_TEXT } from '../../constants/legal';
 import { LoadState } from '../../components/shop/ShopParts';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import type { CommunityScreenProps } from '../../navigation/CommunityNavigator';
@@ -45,12 +46,20 @@ export function PostDetailScreen({ navigation, route }: CommunityScreenProps<'Po
       post.setData({ ...current, likedByMe: result.liked, likeCount: result.likeCount });
     });
 
-  const toggleJoin = () =>
-    run(async () => {
-      const current = post.data!;
-      const result = current.participating ? await communityService.leave(postId) : await communityService.join(postId);
-      post.setData({ ...current, participating: result.participating, recruit: { ...current.recruit!, participantCount: result.participantCount, status: result.status } });
-    });
+  const toggleJoin = () => {
+    const current = post.data!;
+    const doToggle = (liabilityAgreed?: boolean) =>
+      run(async () => {
+        const result = current.participating ? await communityService.leave(postId) : await communityService.join(postId, liabilityAgreed);
+        post.setData({ ...current, participating: result.participating, recruit: { ...current.recruit!, participantCount: result.participantCount, status: result.status } });
+      });
+    // 케어 품앗이 참여 신청은 면책 안내에 동의해야 한다
+    if (!current.participating && current.category === 'CARE_SHARE') {
+      confirmAction({ title: '케어 품앗이 면책 안내', message: CARE_SHARE_LIABILITY_TEXT, confirmText: '동의하고 참여', cancelText: '취소', onConfirm: () => doToggle(true) });
+      return;
+    }
+    doToggle();
+  };
 
   const submitComment = () =>
     run(async () => {

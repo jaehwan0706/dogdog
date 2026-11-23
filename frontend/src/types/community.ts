@@ -56,10 +56,11 @@ export type PostCreateInput = {
   meetAt?: string; // YYYY-MM-DDTHH:mm:ss
   placeName?: string;
   maxParticipants?: number;
+  liabilityAgreed?: boolean; // CARE_SHARE 는 면책 동의 필수
 };
 
 // 수정은 PATCH 라 보내지 않은 값은 그대로 유지된다 (카테고리는 변경 불가)
-export type PostUpdateInput = Partial<Omit<PostCreateInput, 'category'>>;
+export type PostUpdateInput = Partial<Omit<PostCreateInput, 'category' | 'liabilityAgreed'>>;
 
 export type Comment = {
   id: number;
