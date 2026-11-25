@@ -1,12 +1,15 @@
-# 댕산책 백엔드 (Spring Boot 4.1 / Java 21 / MySQL 8)
+# 댕산책 백엔드 (Spring Boot 4.1 / Java 21 / PostgreSQL 16)
 
 인증(이메일·카카오·구글·네이버·Apple) · 반려견 · 커뮤니티(게시글/댓글/좋아요/친구모집/품앗이) · 애완용품 마켓(상품/장바구니/주문·결제) API.
 
 ## 1. 실행
 
-### MySQL로 실행 (기본, `local` 프로필)
-1. `src/main/resources/application-local.yml.example` 을 `application-local.yml` 로 복사 (git 에 안 올라감)
-2. `spring.datasource.password` 를 **본인 MySQL root 비밀번호**로 수정 (DB `dangsanchaek` 는 자동 생성됨)
+### PostgreSQL로 실행 (기본, `local` 프로필)
+운영 DB 는 Supabase(PostgreSQL)다. 로컬도 PostgreSQL 을 쓴다 (MySQL 에서 바뀜: 예전 로컬 MySQL DB 는 더 이상 쓰지 않는다).
+1. 로컬 PostgreSQL 띄우기 (Docker Desktop 필요): `cd backend && docker compose up -d`
+   - Docker 를 안 쓰면 Supabase 에 개발용 프로젝트를 하나 만들어 그 주소를 써도 된다.
+2. `src/main/resources/application-local.yml.example` 을 `application-local.yml` 로 복사 (git 에 안 올라감).
+   이미 있는 `application-local.yml` 은 `spring.datasource` 의 url·username·password·driver-class-name 4줄만 예시처럼 바꾼다.
 3. 실행
    ```bash
    cd backend
@@ -14,7 +17,7 @@
    ```
 4. 기동 시 Flyway가 `db/migration/V1__init_schema.sql` 로 테이블을 만들고, `db/seed` 의 샘플 상품 8개를 넣습니다.
 
-### MySQL 없이 바로 실행 (H2 메모리 DB, 재시작하면 데이터 초기화)
+### DB 없이 바로 실행 (H2 메모리 DB·PostgreSQL 모드, 재시작하면 데이터 초기화)
 ```bash
 ./gradlew bootTestRun --args="--spring.profiles.active=test --app.admin.emails=admin@dangsanchaek.dev"
 ```

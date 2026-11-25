@@ -1,9 +1,10 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/dangsanchaek?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
-    username: root
-    password: changeme
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 로컬 PostgreSQL: backend 폴더에서 docker compose up -d  (또는 Supabase 개발용 프로젝트 주소)
+    url: jdbc:postgresql://localhost:5432/dangsanchaek
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate

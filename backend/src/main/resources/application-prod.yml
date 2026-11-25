@@ -3,7 +3,10 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      # Supabase 무료 플랜은 동시 접속 수가 적어서 작게 잡는다
+      maximum-pool-size: 5
   jpa:
     hibernate:
       ddl-auto: validate

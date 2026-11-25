@@ -5,7 +5,7 @@ services:
     runtime: docker
     plan: free
     region: singapore
-    branch: develop
+    branch: jh
     # rootDir 를 정하면 아래 두 경로는 rootDir 기준이다
     rootDir: backend
     dockerContext: .

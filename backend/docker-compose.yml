@@ -1,0 +1,17 @@
+# 로컬 개발용 PostgreSQL (운영은 Supabase). backend 폴더에서: docker compose up -d
+# application-local.yml.example 의 접속 정보와 같다.
+services:
+  postgres:
+    image: postgres:16
+    container_name: dangsanchaek-postgres
+    environment:
+      POSTGRES_DB: dangsanchaek
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - dangsanchaek-pg:/var/lib/postgresql/data
+
+volumes:
+  dangsanchaek-pg:

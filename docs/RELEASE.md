@@ -30,7 +30,8 @@
 
 - 서버: Render Blueprint (`render.yaml`, `backend/Dockerfile`) — `develop` 브랜치에 올리면 자동 배포.
   무료 플랜은 15분 쉬면 잠들어 첫 요청이 느리고, 디스크가 유지되지 않아 업로드 사진이 재배포 때 사라진다.
-- DB: Render 에는 MySQL 이 없어서 외부 MySQL(예: Aiven 무료 MySQL)을 만들고 `DB_URL` 등을 넣는다.
+- DB: Supabase(PostgreSQL). Render 무료 서버는 IPv6 직접 연결이 안 될 수 있어 Supabase 의 **Session pooler** 주소를 쓴다.
+  `DB_URL=jdbc:postgresql://{pooler 호스트}:5432/postgres?sslmode=require`, `DB_USERNAME=postgres.{프로젝트 ref}`
 - 웹: Vercel (`frontend/vercel.json`, Root Directory `frontend`). 환경 변수 `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_NAVER_MAP_CLIENT_ID`.
 - 배포 후: 카카오·구글 콘솔에 `https://{서버}/auth/oauth/{kakao|google}/callback`, 네이버 지도에 Vercel 주소 등록.
 
@@ -39,7 +40,7 @@
 | 변수 | 내용 |
 |---|---|
 | `SPRING_PROFILES_ACTIVE` | `prod` (기본값이 local 이라 꼭 지정) |
-| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | MySQL |
+| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | Supabase PostgreSQL (Session pooler) |
 | `JWT_SECRET` | 32바이트 이상 임의 문자열 |
 | `ADMIN_EMAILS` | 관리자 이메일 |
 | `OAUTH_CALLBACK_BASE_URL` | https 운영 서버 주소 |

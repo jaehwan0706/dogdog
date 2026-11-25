@@ -37,7 +37,7 @@ AI 건강 분석(오진 시 법적 책임 리스크)은 이번 버전 범위에�
 |---|---|
 | 프론트엔드 | React Native (iOS·Android 단일 코드베이스) |
 | 백엔드 | Java / Spring Boot, 도메인별 패키지 구조 |
-| 데이터베이스 | MySQL (로컬 시작, JPA/Hibernate로 종속성 최소화) |
+| 데이터베이스 | PostgreSQL (운영 Supabase, 로컬 docker compose. JPA/Hibernate로 종속성 최소화) |
 | 인증/보안 | JWT + OAuth 2.0, Apple 로그인 |
 | AI | 외부 사전학습 API/모델 우선 활용 |
 | 결제(PG) | 외부 PG 연동(토스페이먼츠 등) | 자체 PG 미구현, 카드정보 비저장(토큰화) |
@@ -116,4 +116,4 @@ backend/
 
 ## DB 마이그레이션
 
-- 로컬 MySQL로 시작, Flyway로 스키마 변경 이력을 코드로 관리
+- PostgreSQL(운영 Supabase), Flyway로 스키마 변경 이력을 코드로 관리

@@ -25,8 +25,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                    (select b.blockedId from UserBlock b where b.blockerId = :viewerId))
               and (:category is null or p.category = :category)
               and (:recruitStatus is null or p.recruitStatus = :recruitStatus)
-              and (:keyword is null or p.title like concat('%', :keyword, '%')
-                                    or p.content like concat('%', :keyword, '%'))
+              and (:keyword is null or lower(p.title) like lower(concat('%', :keyword, '%'))
+                                    or lower(p.content) like lower(concat('%', :keyword, '%')))
             """)
     Page<Post> search(Long viewerId, PostCategory category, RecruitStatus recruitStatus, String keyword,
                       Pageable pageable);
