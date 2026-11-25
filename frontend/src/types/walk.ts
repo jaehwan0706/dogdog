@@ -16,6 +16,6 @@ export type Walk = {
 };
 
 // seq: 산책마다 0부터 1씩 늘리는 순번. 서버는 이미 받은 seq 를 무시하므로 같은 좌표를 다시 보내도 된다
-export type WalkPoint = { seq: number; latitude: number; longitude: number };
+export type WalkPoint = { seq: number; latitude: number; longitude: number; recordedAtMs?: number | null };
 
 export type WalkDetail = Walk & { points: WalkPoint[] };

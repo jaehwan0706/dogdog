@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { photoPinService } from '../../api/map/photoPinService';
@@ -16,6 +16,7 @@ import type { PhotoPin } from '../../types/photoPin';
 import { confirmAction, notify } from '../../utils/dialog';
 import { withJosa } from '../../utils/format';
 import { formatDistance, formatDuration } from '../../utils/geo';
+import { ROUTE_UNKNOWN_SPEED_COLOR, WALK_SPEED_BANDS, walkRouteSpeedSegments } from '../../utils/walkRouteSpeed';
 
 // 산책 결과: 경로 지도 + 거리·시간·사진. 산책 종료 직후와 산책 기록 목록(WalkHistoryScreen)에서 함께 쓴다
 export function WalkResultScreen({ navigation, route }: RootScreenProps<'WalkResult'>) {
@@ -68,6 +69,7 @@ export function WalkResultScreen({ navigation, route }: RootScreenProps<'WalkRes
     });
 
   const data = walk.data;
+  const speedSegments = useMemo(() => data ? walkRouteSpeedSegments(data.points) : [], [data]);
   if (!data) {
     return (
       <Screen title="산책 기록" onBack={navigation.goBack}>
@@ -114,7 +116,8 @@ export function WalkResultScreen({ navigation, route }: RootScreenProps<'WalkRes
           myLocation={null}
           follow={false}
           route={data.points}
-          showRouteProgress
+          showRouteEndpoints
+          routeSpeedSegments={speedSegments}
           fitRoute
           photoPins={pins.data ?? []}
           onPhotoPinPress={(pinId) => setSelectedPin(pins.data?.find((pin) => pin.id === pinId) ?? null)}
@@ -127,6 +130,23 @@ export function WalkResultScreen({ navigation, route }: RootScreenProps<'WalkRes
                 <Text style={styles.legendLabel}>{label}</Text>
               </View>
             ))}
+          </View>
+        )}
+        {speedSegments.length > 0 && (
+          <View style={[styles.legend, styles.speedLegend]} pointerEvents="none">
+            <Text style={styles.legendLabel}>km/h</Text>
+            {WALK_SPEED_BANDS.map(({ label, color }) => (
+              <View key={label} style={styles.legendItem}>
+                <View style={[styles.legendLine, { backgroundColor: color }]} />
+                <Text style={styles.legendLabel}>{label}</Text>
+              </View>
+            ))}
+            {speedSegments.some(({ color }) => color === ROUTE_UNKNOWN_SPEED_COLOR) && (
+              <View style={styles.legendItem}>
+                <View style={[styles.legendLine, { backgroundColor: ROUTE_UNKNOWN_SPEED_COLOR }]} />
+                <Text style={styles.legendLabel}>미측정</Text>
+              </View>
+            )}
           </View>
         )}
         {data.points.length < 2 && (
@@ -167,6 +187,8 @@ const styles = StyleSheet.create({
   legend: { position: 'absolute', top: spacing.sm, right: spacing.sm, flexDirection: 'row', gap: spacing.sm, padding: spacing.sm, borderRadius: radius.lg, backgroundColor: colors.white },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 9, height: 9, borderRadius: 5 },
+  speedLegend: { top: undefined, bottom: spacing.sm, flexWrap: 'wrap', justifyContent: 'center' },
+  legendLine: { width: 12, height: 5, borderRadius: 3 },
   legendLabel: { ...typography.caption, color: colors.ink },
   notice: { position: 'absolute', left: spacing.md, right: spacing.md, bottom: spacing.md },
 });

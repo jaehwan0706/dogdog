@@ -17,10 +17,9 @@ import {
   GUIDE_STYLE,
   ROUTE_ENDPOINT_ICONS,
   ROUTE_FIT_MARGIN,
-  ROUTE_PROGRESS_OUTLINE,
+  ROUTE_SPEED_OUTLINE,
   ROUTE_STYLE,
   naverMapScriptUrl,
-  routeProgressSegments,
 } from './naverMapHtml';
 
 // 웹(npx expo start --web)용. react-native-webview 가 웹을 지원하지 않아서, 네이버 지도를 이 페이지에 직접 띄움
@@ -71,7 +70,7 @@ function loadNaverMaps(clientId: string): Promise<void> {
   return scriptPromise;
 }
 
-export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, showRouteProgress, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
+export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, showRouteEndpoints, routeSpeedSegments, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<NaverMaps>(null);
   const myMarkerRef = useRef<NaverMaps>(null);
@@ -266,8 +265,7 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       return;
     }
     const path = route.map((p) => new maps.LatLng(p.latitude, p.longitude));
-    const showProgress = showRouteProgress && path.length > 1;
-    const lineStyle = showProgress ? ROUTE_PROGRESS_OUTLINE : ROUTE_STYLE;
+    const lineStyle = routeSpeedSegments?.length ? ROUTE_SPEED_OUTLINE : ROUTE_STYLE;
     if (!routeLineRef.current) {
       routeLineRef.current = new maps.Polyline({ map, path, clickable: false, zIndex: 10, ...lineStyle });
     } else {
@@ -278,10 +276,10 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       const m = ROUTE_FIT_MARGIN;
       map.fitBounds(routeLineRef.current.getBounds(), { top: m, right: m, bottom: m, left: m });
     }
-    if (!showProgress) {
+    if (!showRouteEndpoints || path.length < 2) {
       return;
     }
-    const lines = routeProgressSegments(route).map(({ start, end, color }) => new maps.Polyline({
+    const lines = (routeSpeedSegments ?? []).map(({ start, end, color }) => new maps.Polyline({
       ...ROUTE_STYLE, map, path: path.slice(start, end), strokeColor: color,
       strokeWeight: 7, strokeOpacity: 1, clickable: false, zIndex: 11,
     }));
@@ -293,7 +291,7 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       });
     });
     return () => [...lines, ...endpoints].forEach((overlay) => overlay.setMap(null));
-  }, [isReady, route, fitRoute, showRouteProgress]);
+  }, [isReady, route, fitRoute, showRouteEndpoints, routeSpeedSegments]);
 
   // 코스 안내선
   useEffect(() => {

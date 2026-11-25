@@ -3,10 +3,7 @@
 // 지도 → 앱: window.ReactNativeWebView.postMessage(JSON 문자열)
 // 웹(브라우저)은 이 페이지를 쓰지 않고 NaverWebMap.web.tsx 가 페이지에 지도를 직접 띄움
 
-import { distanceMeters } from '../../utils/geo';
-
 export type MapCamera = { latitude: number; longitude: number; zoom: number };
-type RouteCoordinate = { latitude: number; longitude: number };
 
 export function naverMapScriptUrl(clientId: string) {
   return `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(clientId)}`;
@@ -17,33 +14,11 @@ export const MY_LOCATION_COLOR = '#2F80ED';
 
 // 산책 경로선 (앱·웹 공통)
 export const ROUTE_STYLE = { strokeColor: '#E9903A', strokeWeight: 6, strokeOpacity: 0.9, strokeLineCap: 'round', strokeLineJoin: 'round' };
-export const ROUTE_PROGRESS_OUTLINE = { ...ROUTE_STYLE, strokeColor: '#344432', strokeWeight: 11 };
+export const ROUTE_SPEED_OUTLINE = { ...ROUTE_STYLE, strokeColor: '#344432', strokeWeight: 11 };
 export const ROUTE_ENDPOINTS = [
   { label: '출발', color: '#22844F', size: 24 },
   { label: '도착', color: '#C93533', size: 14 },
 ];
-
-const ROUTE_PROGRESS_COLORS = ['#BDE851', '#DFED45', '#F9E641', '#FBC337', '#FFA435'];
-
-export function routeProgressSegments(route: RouteCoordinate[]) {
-  const lengths = route.slice(1).map((point, index) => distanceMeters(route[index], point));
-  const total = lengths.reduce((sum, length) => sum + length, 0);
-  const segments: { start: number; end: number; color: string }[] = [];
-  let walked = 0;
-
-  lengths.forEach((length, index) => {
-    const progress = total > 0 ? (walked + length / 2) / total : 0;
-    const color = ROUTE_PROGRESS_COLORS[Math.min(ROUTE_PROGRESS_COLORS.length - 1, Math.floor(progress * ROUTE_PROGRESS_COLORS.length))];
-    const previous = segments[segments.length - 1];
-    if (previous?.color === color) {
-      previous.end = index + 2;
-    } else {
-      segments.push({ start: index, end: index + 2, color });
-    }
-    walked += length;
-  });
-  return segments;
-}
 
 // 겹치는 출발·도착점에서도 바깥쪽 출발점과 안쪽 도착점이 함께 보인다.
 export const ROUTE_ENDPOINT_ICONS = ROUTE_ENDPOINTS.map(({ label, color, size }) => ({
@@ -231,21 +206,21 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
 
     // 산책 경로: path 는 [[위도, 경도], ...]
     var routeLine = null;
-    var routeProgressOverlays = [];
+    var routeResultOverlays = [];
     function updateRoute(message) {
       var path = message.path.map(function (p) { return new naver.maps.LatLng(p[0], p[1]); });
-      var progress = message.progress;
-      var style = progress ? ${JSON.stringify(ROUTE_PROGRESS_OUTLINE)} : ${JSON.stringify(ROUTE_STYLE)};
+      var speedSegments = message.speedSegments;
+      var style = speedSegments.length ? ${JSON.stringify(ROUTE_SPEED_OUTLINE)} : ${JSON.stringify(ROUTE_STYLE)};
       if (!routeLine) {
         routeLine = new naver.maps.Polyline(Object.assign({ map: map, path: path, clickable: false, zIndex: 10 }, style));
       } else {
         routeLine.setPath(path);
         routeLine.setOptions(style);
       }
-      routeProgressOverlays.forEach(function (overlay) { overlay.setMap(null); });
-      routeProgressOverlays = [];
-      if (progress) {
-        routeProgressOverlays = progress.map(function (segment) {
+      routeResultOverlays.forEach(function (overlay) { overlay.setMap(null); });
+      routeResultOverlays = [];
+      if (message.showEndpoints && path.length > 1) {
+        routeResultOverlays = speedSegments.map(function (segment) {
           return new naver.maps.Polyline(Object.assign({}, ${JSON.stringify(ROUTE_STYLE)}, {
             map: map, path: path.slice(segment.start, segment.end), strokeColor: segment.color,
             strokeWeight: 7, strokeOpacity: 1, clickable: false, zIndex: 11,
@@ -254,7 +229,7 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
         var icons = ${JSON.stringify(ROUTE_ENDPOINT_ICONS)};
         [path[0], path[path.length - 1]].forEach(function (position, index) {
           var icon = icons[index];
-          routeProgressOverlays.push(new naver.maps.Marker({
+          routeResultOverlays.push(new naver.maps.Marker({
             map: map, position: position, clickable: false, zIndex: 40 + index,
             icon: { content: icon.content, anchor: new naver.maps.Point(icon.anchor, icon.anchor) },
           }));

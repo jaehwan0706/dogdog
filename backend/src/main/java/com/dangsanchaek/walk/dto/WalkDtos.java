@@ -31,7 +31,8 @@ public final class WalkDtos {
             @NotNull(message = "위도를 입력해 주세요.")
             @DecimalMin("-90.0") @DecimalMax("90.0") Double latitude,
             @NotNull(message = "경도를 입력해 주세요.")
-            @DecimalMin("-180.0") @DecimalMax("180.0") Double longitude
+            @DecimalMin("-180.0") @DecimalMax("180.0") Double longitude,
+            @Min(1) Long recordedAtMs
     ) {
     }
 
@@ -72,9 +73,9 @@ public final class WalkDtos {
         }
     }
 
-    public record WalkPointResponse(int seq, double latitude, double longitude) {
+    public record WalkPointResponse(int seq, double latitude, double longitude, Long recordedAtMs) {
         public static WalkPointResponse from(WalkPoint point) {
-            return new WalkPointResponse(point.getSeq(), point.getLatitude(), point.getLongitude());
+            return new WalkPointResponse(point.getSeq(), point.getLatitude(), point.getLongitude(), point.getRecordedAtMs());
         }
     }
 

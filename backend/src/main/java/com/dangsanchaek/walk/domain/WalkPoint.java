@@ -33,10 +33,14 @@ public class WalkPoint {
     @Column(nullable = false)
     private double longitude;
 
-    public WalkPoint(Long walkId, int seq, double latitude, double longitude) {
+    @Column(name = "recorded_at_ms")
+    private Long recordedAtMs;
+
+    public WalkPoint(Long walkId, int seq, double latitude, double longitude, Long recordedAtMs) {
         this.walkId = walkId;
         this.seq = seq;
         this.latitude = latitude;
         this.longitude = longitude;
+        this.recordedAtMs = recordedAtMs;
     }
 }
