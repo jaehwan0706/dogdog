@@ -1,0 +1,36 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:dangsanchaek;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+app:
+  jwt:
+    secret: test-secret-0123456789-abcdefghijklmnopqrstuvwxyz
+  oauth:
+    mock-enabled: true
+    web:
+      callback-base-url: http://localhost:8090
+      allowed-redirects: dangsanchaek://,http://localhost:8082
+  payment:
+    mode: mock
+  admin:
+    emails: admin@test.dev,admin-mod@test.dev,admin-market@test.dev
+  storage:
+    local-dir: build/test-uploads
+  facility:
+    data-file: classpath:data/pet_facilities_test.csv
+  park:
+    data-file: classpath:data/city_parks_test.csv
+  # 환경변수에 실제 키가 있어도 테스트는 예시 데이터·직선거리로 (실제 API 확인은 *LiveTest)
+  public-data:
+    service-key: ""
+  tmap:
+    app-key: ""

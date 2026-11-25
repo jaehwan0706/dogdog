@@ -1,0 +1,38 @@
+spring:
+  datasource:
+    # 로컬 PostgreSQL: backend 폴더에서 docker compose up -d  (또는 Supabase 개발용 프로젝트 주소)
+    url: jdbc:postgresql://localhost:5432/dangsanchaek
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration,classpath:db/seed
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: local-dev-secret-change-me-0123456789-abcdefghij
+  oauth:
+    mock-enabled: true
+    web:
+      callback-base-url: http://localhost:8090
+      # exp:// 는 Expo Go, 8082 는 Expo 웹 개발 서버
+      allowed-redirects: dangsanchaek://,exp://,http://localhost:8082,http://127.0.0.1:8082
+      kakao:
+        client-id:       # 카카오 REST API 키 (비워두면 mock 로그인)
+        client-secret:
+  payment:
+    mode: mock
+  admin:
+    emails: admin@dangsanchaek.dev
+  # public-data:
+  #   service-key: 공공데이터포털 일반 인증키 (없으면 예시 날씨·미세먼지)
+  # tmap:
+  #   app-key: SK open API TMAP 앱 키 (없으면 코스 거리를 직선거리로 추정)
