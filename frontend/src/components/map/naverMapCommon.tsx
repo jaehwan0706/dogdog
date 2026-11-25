@@ -26,6 +26,7 @@ export type NaverWebMapProps = {
   onUserGesture?: () => void;
   // 지도에 썸네일로 표시할 사진 핀
   photoPins?: MapPhotoPin[];
+  compactPhotoPins?: boolean;
   onPhotoPinPress?: (pinId: number) => void;
   // 산책 경로선 (좌표 순서대로 이음)
   route?: MapLatLng[];

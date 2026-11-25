@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { photoPinService } from '../../api/map/photoPinService';
 import { walkService } from '../../api/walk/walkService';
 import { AppButton } from '../../components/AppButton';
-import { AppCard } from '../../components/AppCard';
 import { Screen } from '../../components/Screen';
 import { NaverWebMap } from '../../components/map/NaverWebMap';
 import { ROUTE_ENDPOINTS } from '../../components/map/naverMapHtml';
@@ -15,7 +14,7 @@ import { colors, radius, spacing, typography } from '../../theme';
 import type { PhotoPin } from '../../types/photoPin';
 import { confirmAction, notify } from '../../utils/dialog';
 import { withJosa } from '../../utils/format';
-import { formatDistance, formatDuration } from '../../utils/geo';
+import { formatClock, formatDistance } from '../../utils/geo';
 import { ROUTE_UNKNOWN_SPEED_COLOR, WALK_SPEED_BANDS, walkRouteSpeedSegments } from '../../utils/walkRouteSpeed';
 
 // 산책 결과: 경로 지도 + 거리·시간·사진. 산책 종료 직후와 산책 기록 목록(WalkHistoryScreen)에서 함께 쓴다
@@ -28,6 +27,7 @@ export function WalkResultScreen({ navigation, route }: RootScreenProps<'WalkRes
   );
   const [selectedPin, setSelectedPin] = useState<PhotoPin | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { width } = useWindowDimensions();
 
   const deleteWalk = () =>
     confirmAction({
@@ -70,6 +70,10 @@ export function WalkResultScreen({ navigation, route }: RootScreenProps<'WalkRes
 
   const data = walk.data;
   const speedSegments = useMemo(() => data ? walkRouteSpeedSegments(data.points) : [], [data]);
+  const firstPhoto = pins.data?.[0];
+  const photoCamera = useMemo(() => firstPhoto && (data?.points.length ?? 0) < 2
+    ? { latitude: firstPhoto.latitude, longitude: firstPhoto.longitude, zoom: 16 }
+    : null, [data, firstPhoto]);
   if (!data) {
     return (
       <Screen title="산책 기록" onBack={navigation.goBack}>
@@ -88,12 +92,14 @@ export function WalkResultScreen({ navigation, route }: RootScreenProps<'WalkRes
   const first = data.points[0];
   const started = new Date(Date.parse(data.startedAt));
   const title = data.dogName ? `${withJosa(data.dogName, '과', '와')} 함께 걸었어요` : '산책을 마쳤어요';
+  const distance = formatDistance(data.distanceMeters);
+  const distanceUnit = distance.endsWith('km') ? 'km' : 'm';
+  const photoCount = pins.data ? `${pins.data.length}장` : '—';
 
   return (
     <Screen
       title={title}
       subtitle={`${started.getMonth() + 1}월 ${started.getDate()}일 ${started.getHours()}시 ${String(started.getMinutes()).padStart(2, '0')}분 시작`}
-      scroll={false}
       onBack={navigation.goBack}
       headerRight={(
         <Pressable accessibilityRole="button" accessibilityLabel="산책 기록 삭제" hitSlop={8} disabled={deleting} onPress={deleteWalk}>
@@ -101,75 +107,96 @@ export function WalkResultScreen({ navigation, route }: RootScreenProps<'WalkRes
         </Pressable>
       )}
     >
-      <View style={styles.stats}>
-        <Stat label="거리" value={formatDistance(data.distanceMeters)} />
-        <View style={styles.divider} />
-        <Stat label="시간" value={formatDuration(data.durationSeconds)} />
-        <View style={styles.divider} />
-        <Stat label="사진" value={`${pins.data?.length ?? 0}장`} />
-      </View>
-
-      <View style={styles.mapCard}>
-        <NaverWebMap
-          style={styles.map}
-          initialCamera={first ? { latitude: first.latitude, longitude: first.longitude, zoom: 16 } : { latitude: 37.5666, longitude: 126.9784, zoom: 15 }}
-          myLocation={null}
-          follow={false}
-          route={data.points}
-          showRouteEndpoints
-          routeSpeedSegments={speedSegments}
-          fitRoute
-          photoPins={pins.data ?? []}
-          onPhotoPinPress={(pinId) => setSelectedPin(pins.data?.find((pin) => pin.id === pinId) ?? null)}
-        />
-        {data.points.length > 1 && (
-          <View style={styles.legend} pointerEvents="none">
-            {ROUTE_ENDPOINTS.map(({ label, color }) => (
-              <View key={label} style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: color }]} />
-                <Text style={styles.legendLabel}>{label}</Text>
-              </View>
-            ))}
+      <View style={styles.content}>
+        <View style={styles.summary}>
+          <View style={styles.distanceHeader}>
+            <Text style={styles.distanceLabel}>산책 거리</Text>
+            <View style={styles.paw}>
+              <MaterialCommunityIcons name="paw" size={23} color={colors.forest} />
+            </View>
           </View>
-        )}
-        {speedSegments.length > 0 && (
-          <View style={[styles.legend, styles.speedLegend]} pointerEvents="none">
-            <Text style={styles.legendLabel}>km/h</Text>
-            {WALK_SPEED_BANDS.map(({ label, color }) => (
-              <View key={label} style={styles.legendItem}>
-                <View style={[styles.legendLine, { backgroundColor: color }]} />
-                <Text style={styles.legendLabel}>{label}</Text>
-              </View>
-            ))}
-            {speedSegments.some(({ color }) => color === ROUTE_UNKNOWN_SPEED_COLOR) && (
-              <View style={styles.legendItem}>
-                <View style={[styles.legendLine, { backgroundColor: ROUTE_UNKNOWN_SPEED_COLOR }]} />
-                <Text style={styles.legendLabel}>미측정</Text>
+          <Text style={styles.distanceValue}>
+            {distance.slice(0, -distanceUnit.length)} <Text style={styles.distanceUnit}>{distanceUnit}</Text>
+          </Text>
+          <View style={styles.stats}>
+            <Stat icon="clock-outline" label="산책 시간" value={formatClock(data.durationSeconds)} />
+            <Stat icon="camera-outline" label="사진" value={photoCount} />
+          </View>
+        </View>
+
+        <View style={styles.mapCard}>
+          <View style={styles.mapHeader}>
+            <Text style={styles.mapTitle}>걸어온 길</Text>
+            {data.points.length > 1 && (
+              <View style={styles.legend}>
+                {ROUTE_ENDPOINTS.map(({ label, color }) => (
+                  <View key={label} style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: color }]} />
+                    <Text style={styles.legendLabel}>{label}</Text>
+                  </View>
+                ))}
               </View>
             )}
           </View>
-        )}
-        {data.points.length < 2 && (
-          <View style={styles.notice}>
-            <AppCard>
-              <Text style={styles.body}>경로가 기록되지 않았어요. 산책 중에는 앱을 켜 둔 채로 걸어주세요.</Text>
-            </AppCard>
+          <View style={[styles.mapFrame, { height: Math.max(260, Math.min(width - spacing.xl * 2, 420)) }]}>
+            <NaverWebMap
+              style={styles.map}
+              initialCamera={photoCamera ?? (first ? { latitude: first.latitude, longitude: first.longitude, zoom: 16 } : { latitude: 37.5666, longitude: 126.9784, zoom: 15 })}
+              myLocation={null}
+              follow={false}
+              moveTo={photoCamera}
+              route={data.points}
+              showRouteEndpoints
+              routeSpeedSegments={speedSegments}
+              fitRoute
+              photoPins={pins.data ?? undefined}
+              compactPhotoPins
+              onPhotoPinPress={(pinId) => setSelectedPin(pins.data?.find((pin) => pin.id === pinId) ?? null)}
+            />
           </View>
-        )}
-      </View>
+          {speedSegments.length > 0 && (
+            <View style={styles.speedLegend}>
+              <Text style={styles.legendLabel}>속도 (km/h)</Text>
+              {WALK_SPEED_BANDS.map(({ label, color }) => (
+                <View key={label} style={styles.legendItem}>
+                  <View style={[styles.legendLine, { backgroundColor: color }]} />
+                  <Text style={styles.legendLabel}>{label}</Text>
+                </View>
+              ))}
+              {speedSegments.some(({ color }) => color === ROUTE_UNKNOWN_SPEED_COLOR) && (
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendLine, { backgroundColor: ROUTE_UNKNOWN_SPEED_COLOR }]} />
+                  <Text style={styles.legendLabel}>미측정</Text>
+                </View>
+              )}
+            </View>
+          )}
+          {data.points.length < 2 && (
+            <Text style={styles.notice}>기록된 산책 경로가 없어요.</Text>
+          )}
+          {pins.error && (
+            <Pressable accessibilityRole="button" style={styles.notice} onPress={pins.reload}>
+              <Text style={styles.legendLabel}>사진을 불러오지 못했어요. 다시 시도</Text>
+            </Pressable>
+          )}
+        </View>
 
-      <AppButton label="확인" onPress={navigation.goBack} />
+        <AppButton label="확인" onPress={navigation.goBack} />
+      </View>
 
       <PhotoPinDetailSheet pin={selectedPin} deleting={deletingPin} onClose={() => setSelectedPin(null)} onDelete={deletePin} />
     </Screen>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ icon, label, value }: { icon: 'clock-outline' | 'camera-outline'; label: string; value: string }) {
   return (
     <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <MaterialCommunityIcons name={icon} size={19} color={colors.forestMuted} />
+      <View>
+        <Text style={styles.statLabel}>{label}</Text>
+        <Text style={styles.statValue}>{value}</Text>
+      </View>
     </View>
   );
 }
@@ -177,18 +204,27 @@ function Stat({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   center: { alignItems: 'center', gap: spacing.md, paddingTop: spacing.section },
   body: { ...typography.body, color: colors.ink },
-  stats: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.lg, borderWidth: 1, flexDirection: 'row', paddingVertical: spacing.lg },
-  stat: { alignItems: 'center', flex: 1, gap: 2 },
-  statValue: { ...typography.title, color: colors.ink },
-  statLabel: { ...typography.caption, color: colors.inkSoft },
-  divider: { backgroundColor: colors.line, height: 32, width: 1 },
-  mapCard: { flex: 1, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.line },
+  content: { gap: spacing.lg, maxWidth: 600, width: '100%', alignSelf: 'center' },
+  summary: { backgroundColor: colors.forestSoft, borderColor: colors.line, borderWidth: 1, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.sm },
+  distanceHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  distanceLabel: { ...typography.label, color: colors.forest },
+  paw: { width: 40, height: 40, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },
+  distanceValue: { ...typography.display, fontSize: 42, lineHeight: 49, fontVariant: ['tabular-nums'], color: colors.forestDeep },
+  distanceUnit: { ...typography.heading, color: colors.forestMuted },
+  stats: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
+  stat: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderRadius: radius.md, backgroundColor: colors.ivory },
+  statValue: { ...typography.heading, fontVariant: ['tabular-nums'], color: colors.ink },
+  statLabel: { ...typography.caption, color: colors.forestMuted },
+  mapCard: { borderRadius: radius.xl, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, overflow: 'hidden' },
+  mapHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, padding: spacing.lg },
+  mapTitle: { ...typography.heading, color: colors.ink },
+  mapFrame: { overflow: 'hidden', backgroundColor: colors.ivorySoft },
   map: { flex: 1 },
-  legend: { position: 'absolute', top: spacing.sm, right: spacing.sm, flexDirection: 'row', gap: spacing.sm, padding: spacing.sm, borderRadius: radius.lg, backgroundColor: colors.white },
+  legend: { flexDirection: 'row', gap: spacing.sm },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 9, height: 9, borderRadius: 5 },
-  speedLegend: { top: undefined, bottom: spacing.sm, flexWrap: 'wrap', justifyContent: 'center' },
+  speedLegend: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   legendLine: { width: 12, height: 5, borderRadius: 3 },
   legendLabel: { ...typography.caption, color: colors.ink },
-  notice: { position: 'absolute', left: spacing.md, right: spacing.md, bottom: spacing.md },
+  notice: { ...typography.caption, color: colors.inkSoft, padding: spacing.lg },
 });

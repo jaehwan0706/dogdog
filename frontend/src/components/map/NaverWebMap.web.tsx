@@ -8,6 +8,7 @@ import {
   type NaverWebMapProps,
 } from './naverMapCommon';
 import {
+  COMPACT_PHOTO_PIN_ANCHOR,
   FACILITY_MARKER_ANCHOR,
   FACILITY_MARKER_CSS,
   FACILITY_MARKER_STYLE,
@@ -70,7 +71,7 @@ function loadNaverMaps(clientId: string): Promise<void> {
   return scriptPromise;
 }
 
-export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, showRouteEndpoints, routeSpeedSegments, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
+export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, compactPhotoPins, onPhotoPinPress, route, showRouteEndpoints, routeSpeedSegments, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<NaverMaps>(null);
   const myMarkerRef = useRef<NaverMaps>(null);
@@ -205,22 +206,24 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       return;
     }
     photoMarkersRef.current.forEach((marker) => marker.setMap(null));
+    const anchor = compactPhotoPins ? COMPACT_PHOTO_PIN_ANCHOR : PHOTO_PIN_ANCHOR;
     photoMarkersRef.current = (photoPins ?? []).map((pin) => {
       const element = document.createElement('div');
-      element.className = 'pin';
+      element.className = compactPhotoPins ? 'pin pin--compact' : 'pin';
       const image = document.createElement('img');
       image.src = pin.imageUrl;
       element.appendChild(image);
       const marker = new maps.Marker({
         map,
         position: new maps.LatLng(pin.latitude, pin.longitude),
-        icon: { content: element, anchor: new maps.Point(PHOTO_PIN_ANCHOR.x, PHOTO_PIN_ANCHOR.y) },
+        title: '산책 사진',
+        icon: { content: element, anchor: new maps.Point(anchor.x, anchor.y) },
         zIndex: 50,
       });
       maps.Event.addListener(marker, 'click', () => onPhotoPinPressRef.current?.(pin.id));
       return marker;
     });
-  }, [isReady, photoPins]);
+  }, [isReady, photoPins, compactPhotoPins]);
 
   // 친화시설 마커: 목록이 바뀔 때마다 전부 지우고 다시 그림
   useEffect(() => {

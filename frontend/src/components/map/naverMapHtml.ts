@@ -34,10 +34,14 @@ export const ROUTE_FIT_MARGIN = 48;
 export const PHOTO_PIN_SIZE = 44;
 export const PHOTO_PIN_BORDER = '#184D3B';
 export const PHOTO_PIN_ANCHOR = { x: PHOTO_PIN_SIZE / 2 + 3, y: PHOTO_PIN_SIZE + 12 };
+const COMPACT_PHOTO_PIN_SIZE = 28;
+export const COMPACT_PHOTO_PIN_ANCHOR = { x: COMPACT_PHOTO_PIN_SIZE / 2 + 2, y: COMPACT_PHOTO_PIN_SIZE + 9 };
 export const PHOTO_PIN_CSS = `
   .pin { position: relative; width: ${PHOTO_PIN_SIZE}px; height: ${PHOTO_PIN_SIZE}px; border: 3px solid ${PHOTO_PIN_BORDER}; border-radius: 50%; background: #EAF0EC; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); cursor: pointer; }
   .pin img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
   .pin::after { content: ''; position: absolute; left: 50%; bottom: -10px; margin-left: -6px; border: 6px solid transparent; border-top: 6px solid ${PHOTO_PIN_BORDER}; }
+  .pin--compact { width: ${COMPACT_PHOTO_PIN_SIZE}px; height: ${COMPACT_PHOTO_PIN_SIZE}px; border: 2px solid white; box-shadow: 0 0 0 1px ${PHOTO_PIN_BORDER}, 0 2px 5px #184D3B55; }
+  .pin--compact::after { bottom: -9px; margin-left: -5px; border-width: 5px; border-top-color: ${PHOTO_PIN_BORDER}; }
 `;
 
 // 친화시설 마커: 흰 원 + 분류 그림(이모지), 테두리 색은 분류 묶음별. 앵커는 원 가운데 (앱·웹 공통)
@@ -158,19 +162,21 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
 
     // 사진 핀: 목록이 바뀔 때마다 전부 지우고 다시 그림 (개인 기록이라 개수가 많지 않음)
     var photoMarkers = [];
-    function updatePhotoPins(pins) {
+    function updatePhotoPins(pins, compact) {
+      var anchor = compact ? ${JSON.stringify(COMPACT_PHOTO_PIN_ANCHOR)} : ${JSON.stringify(PHOTO_PIN_ANCHOR)};
       photoMarkers.forEach(function (marker) { marker.setMap(null); });
       photoMarkers = pins.map(function (pin) {
         // 이미지 주소는 문자열로 HTML 에 끼워 넣지 않고 DOM 으로 만들어서 넣음
         var element = document.createElement('div');
-        element.className = 'pin';
+        element.className = compact ? 'pin pin--compact' : 'pin';
         var image = document.createElement('img');
         image.src = pin.imageUrl;
         element.appendChild(image);
         var marker = new naver.maps.Marker({
           map: map,
           position: new naver.maps.LatLng(pin.latitude, pin.longitude),
-          icon: { content: element, anchor: new naver.maps.Point(${PHOTO_PIN_ANCHOR.x}, ${PHOTO_PIN_ANCHOR.y}) },
+          title: '산책 사진',
+          icon: { content: element, anchor: new naver.maps.Point(anchor.x, anchor.y) },
           zIndex: 50,
         });
         naver.maps.Event.addListener(marker, 'click', function () {
@@ -260,7 +266,7 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
       if (message.type === 'location') {
         updateMyLocation(message);
       } else if (message.type === 'photoPins') {
-        updatePhotoPins(message.pins);
+        updatePhotoPins(message.pins, message.compact);
       } else if (message.type === 'route') {
         updateRoute(message);
       } else if (message.type === 'guide') {

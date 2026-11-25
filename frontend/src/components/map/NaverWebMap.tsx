@@ -22,7 +22,7 @@ const BASE_URL = 'http://localhost';
 type WebViewHandle = { injectJavaScript: (script: string) => void };
 const WebView = RNWebView as ComponentType<ComponentProps<typeof RNWebView> & { ref?: Ref<WebViewHandle> }>;
 
-export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, showRouteEndpoints, routeSpeedSegments, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
+export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, compactPhotoPins, onPhotoPinPress, route, showRouteEndpoints, routeSpeedSegments, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
   const webViewRef = useRef<WebViewHandle>(null);
   // 처음 한 번만 만들기 (다시 만들면 WebView 가 새로고침됨)
   const [html] = useState(() => buildNaverMapHtml(CLIENT_ID, initialCamera));
@@ -45,11 +45,11 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
     if (!isReady) {
       return;
     }
-    const message = { type: 'photoPins', pins: photoPins ?? [] };
+    const message = { type: 'photoPins', pins: photoPins ?? [], compact: compactPhotoPins };
     webViewRef.current?.injectJavaScript(
       `window.__fromApp && window.__fromApp(${JSON.stringify(message)}); true;`,
     );
-  }, [isReady, photoPins]);
+  }, [isReady, photoPins, compactPhotoPins]);
 
   // 산책 경로가 바뀌면 경로선을 다시 그림 (좌표는 [위도, 경도] 배열로 줄여서 보냄)
   useEffect(() => {
