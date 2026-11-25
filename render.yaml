@@ -1,0 +1,48 @@
+# Render 서버 설정 (Blueprint). 비밀 값은 여기에 적지 않고, 처음 만들 때 Render 화면에서 입력한다.
+services:
+  - type: web
+    name: dangsanchaek-api
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: develop
+    # rootDir 를 정하면 아래 두 경로는 rootDir 기준이다
+    rootDir: backend
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: JWT_SECRET
+        generateValue: true
+      # MySQL (예: jdbc:mysql://호스트:포트/dangsanchaek?useSSL=true&serverTimezone=Asia/Seoul)
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      # 이 서버의 https 주소 (예: https://dangsanchaek-api.onrender.com)
+      - key: OAUTH_CALLBACK_BASE_URL
+        sync: false
+      # 앱 스킴 + 웹(Vercel) 주소. 예: dangsanchaek://,https://dangsanchaek.vercel.app
+      - key: OAUTH_ALLOWED_REDIRECTS
+        sync: false
+      - key: KAKAO_REST_API_KEY
+        sync: false
+      - key: KAKAO_CLIENT_SECRET
+        sync: false
+      # 스프링 규칙상 client-id → CLIENTID (- 없이)
+      - key: APP_OAUTH_WEB_GOOGLE_CLIENTID
+        sync: false
+      - key: APP_OAUTH_WEB_GOOGLE_CLIENTSECRET
+        sync: false
+      - key: PUBLIC_DATA_SERVICE_KEY
+        sync: false
+      - key: TMAP_APP_KEY
+        sync: false
+      # 자체 결제는 쓰지 않는다 (마켓은 쿠팡 링크). toss 는 토스 키가 없으면 서버가 켜지지 않음
+      - key: PAYMENT_MODE
+        value: mock

@@ -1,0 +1,8 @@
+# 키·로컬 설정과 빌드 산출물은 이미지에 넣지 않는다
+src/main/resources/application-local.yml
+**/.env
+build
+bin
+.gradle
+uploads
+postman
