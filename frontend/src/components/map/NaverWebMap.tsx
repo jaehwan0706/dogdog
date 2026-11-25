@@ -10,7 +10,7 @@ import {
   type MapViewport,
   type NaverWebMapProps,
 } from './naverMapCommon';
-import { buildNaverMapHtml } from './naverMapHtml';
+import { buildNaverMapHtml, routeProgressSegments } from './naverMapHtml';
 
 // 앱(iOS/Android)용. 웹에서는 NaverWebMap.web.tsx 가 대신 쓰임 (react-native-webview 가 웹 미지원)
 
@@ -22,7 +22,7 @@ const BASE_URL = 'http://localhost';
 type WebViewHandle = { injectJavaScript: (script: string) => void };
 const WebView = RNWebView as ComponentType<ComponentProps<typeof RNWebView> & { ref?: Ref<WebViewHandle> }>;
 
-export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
+export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, showRouteProgress, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
   const webViewRef = useRef<WebViewHandle>(null);
   // 처음 한 번만 만들기 (다시 만들면 WebView 가 새로고침됨)
   const [html] = useState(() => buildNaverMapHtml(CLIENT_ID, initialCamera));
@@ -56,11 +56,16 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
     if (!isReady || !route) {
       return;
     }
-    const message = { type: 'route', path: route.map((p) => [p.latitude, p.longitude]), fit: fitRoute };
+    const message = {
+      type: 'route',
+      path: route.map((p) => [p.latitude, p.longitude]),
+      fit: fitRoute,
+      progress: showRouteProgress && route.length > 1 ? routeProgressSegments(route) : null,
+    };
     webViewRef.current?.injectJavaScript(
       `window.__fromApp && window.__fromApp(${JSON.stringify(message)}); true;`,
     );
-  }, [isReady, route, fitRoute]);
+  }, [isReady, route, fitRoute, showRouteProgress]);
 
   // 코스 안내선
   useEffect(() => {

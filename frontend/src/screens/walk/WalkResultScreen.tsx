@@ -7,6 +7,7 @@ import { AppButton } from '../../components/AppButton';
 import { AppCard } from '../../components/AppCard';
 import { Screen } from '../../components/Screen';
 import { NaverWebMap } from '../../components/map/NaverWebMap';
+import { ROUTE_ENDPOINTS } from '../../components/map/naverMapHtml';
 import { PhotoPinDetailSheet } from '../../components/map/PhotoPinSheets';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import type { RootScreenProps } from '../../navigation/RootNavigator';
@@ -113,10 +114,21 @@ export function WalkResultScreen({ navigation, route }: RootScreenProps<'WalkRes
           myLocation={null}
           follow={false}
           route={data.points}
+          showRouteProgress
           fitRoute
           photoPins={pins.data ?? []}
           onPhotoPinPress={(pinId) => setSelectedPin(pins.data?.find((pin) => pin.id === pinId) ?? null)}
         />
+        {data.points.length > 1 && (
+          <View style={styles.legend} pointerEvents="none">
+            {ROUTE_ENDPOINTS.map(({ label, color }) => (
+              <View key={label} style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: color }]} />
+                <Text style={styles.legendLabel}>{label}</Text>
+              </View>
+            ))}
+          </View>
+        )}
         {data.points.length < 2 && (
           <View style={styles.notice}>
             <AppCard>
@@ -152,5 +164,9 @@ const styles = StyleSheet.create({
   divider: { backgroundColor: colors.line, height: 32, width: 1 },
   mapCard: { flex: 1, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.line },
   map: { flex: 1 },
+  legend: { position: 'absolute', top: spacing.sm, right: spacing.sm, flexDirection: 'row', gap: spacing.sm, padding: spacing.sm, borderRadius: radius.lg, backgroundColor: colors.white },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  legendDot: { width: 9, height: 9, borderRadius: 5 },
+  legendLabel: { ...typography.caption, color: colors.ink },
   notice: { position: 'absolute', left: spacing.md, right: spacing.md, bottom: spacing.md },
 });

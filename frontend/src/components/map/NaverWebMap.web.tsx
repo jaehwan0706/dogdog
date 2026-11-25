@@ -15,9 +15,12 @@ import {
   PHOTO_PIN_ANCHOR,
   PHOTO_PIN_CSS,
   GUIDE_STYLE,
+  ROUTE_ENDPOINT_ICONS,
   ROUTE_FIT_MARGIN,
+  ROUTE_PROGRESS_OUTLINE,
   ROUTE_STYLE,
   naverMapScriptUrl,
+  routeProgressSegments,
 } from './naverMapHtml';
 
 // 웹(npx expo start --web)용. react-native-webview 가 웹을 지원하지 않아서, 네이버 지도를 이 페이지에 직접 띄움
@@ -68,7 +71,7 @@ function loadNaverMaps(clientId: string): Promise<void> {
   return scriptPromise;
 }
 
-export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
+export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, showRouteProgress, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<NaverMaps>(null);
   const myMarkerRef = useRef<NaverMaps>(null);
@@ -263,16 +266,34 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       return;
     }
     const path = route.map((p) => new maps.LatLng(p.latitude, p.longitude));
+    const showProgress = showRouteProgress && path.length > 1;
+    const lineStyle = showProgress ? ROUTE_PROGRESS_OUTLINE : ROUTE_STYLE;
     if (!routeLineRef.current) {
-      routeLineRef.current = new maps.Polyline({ map, path, clickable: false, zIndex: 10, ...ROUTE_STYLE });
+      routeLineRef.current = new maps.Polyline({ map, path, clickable: false, zIndex: 10, ...lineStyle });
     } else {
       routeLineRef.current.setPath(path);
+      routeLineRef.current.setOptions(lineStyle);
     }
-    if (fitRoute && path.length > 0) {
+    if (fitRoute && path.length > 1) {
       const m = ROUTE_FIT_MARGIN;
       map.fitBounds(routeLineRef.current.getBounds(), { top: m, right: m, bottom: m, left: m });
     }
-  }, [isReady, route, fitRoute]);
+    if (!showProgress) {
+      return;
+    }
+    const lines = routeProgressSegments(route).map(({ start, end, color }) => new maps.Polyline({
+      ...ROUTE_STYLE, map, path: path.slice(start, end), strokeColor: color,
+      strokeWeight: 7, strokeOpacity: 1, clickable: false, zIndex: 11,
+    }));
+    const endpoints = [path[0], path[path.length - 1]].map((position, index) => {
+      const { content, anchor } = ROUTE_ENDPOINT_ICONS[index];
+      return new maps.Marker({
+        map, position, clickable: false, zIndex: 40 + index,
+        icon: { content, anchor: new maps.Point(anchor, anchor) },
+      });
+    });
+    return () => [...lines, ...endpoints].forEach((overlay) => overlay.setMap(null));
+  }, [isReady, route, fitRoute, showRouteProgress]);
 
   // 코스 안내선
   useEffect(() => {

@@ -28,6 +28,8 @@ export type NaverWebMapProps = {
   onPhotoPinPress?: (pinId: number) => void;
   // 산책 경로선 (좌표 순서대로 이음)
   route?: MapLatLng[];
+  // 완료한 산책의 이동 순서를 색과 출발·도착 마커로 표시
+  showRouteProgress?: boolean;
   // true 면 경로가 바뀔 때 경로 전체가 보이도록 화면을 맞춤 (산책 결과 화면용)
   fitRoute?: boolean;
   // 따라 걸을 코스 안내선 (산책 경로선 아래에 점선으로)
