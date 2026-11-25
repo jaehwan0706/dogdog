@@ -24,8 +24,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("""
             select u from User u
             where (:status is null or u.status = :status)
-              and (:keyword is null or lower(u.nickname) like lower(concat('%', :keyword, '%'))
-                                    or lower(u.email) like lower(concat('%', :keyword, '%')))
+              and (:keyword is null or lower(u.nickname) like lower(concat('%', cast(:keyword as String), '%'))
+                                    or lower(u.email) like lower(concat('%', cast(:keyword as String), '%')))
             """)
     Page<User> search(UserStatus status, String keyword, Pageable pageable);
 }

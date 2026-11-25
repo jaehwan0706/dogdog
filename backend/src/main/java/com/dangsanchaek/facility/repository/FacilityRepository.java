@@ -33,7 +33,7 @@ public interface FacilityRepository extends JpaRepository<Facility, Long> {
     /** 이름 검색 (기준 위치에서 가까운 순) */
     @Query("""
             select f from Facility f
-            where lower(f.name) like lower(concat('%', :keyword, '%'))
+            where lower(f.name) like lower(concat('%', cast(:keyword as String), '%'))
               and f.category in :categories
             order by (f.latitude - :lat) * (f.latitude - :lat)
                    + (f.longitude - :lng) * (f.longitude - :lng) * :lngScale
