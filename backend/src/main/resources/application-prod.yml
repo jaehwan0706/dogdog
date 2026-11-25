@@ -7,12 +7,19 @@ spring:
     hikari:
       # Supabase 무료 플랜은 동시 접속 수가 적어서 작게 잡는다
       maximum-pool-size: 5
+      # Supabase 의 public 스키마에는 Supabase 기본 객체가 있어서 댕산책 전용 스키마를 쓴다
+      schema: dangsanchaek
   jpa:
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: dangsanchaek
     show-sql: false
   flyway:
     enabled: true
+    schemas: dangsanchaek        # 없으면 Flyway 가 만든다
+    default-schema: dangsanchaek
     locations: classpath:db/migration
 
 server:
