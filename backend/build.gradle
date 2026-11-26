@@ -14,6 +14,8 @@ java {
 }
 
 repositories {
+	// settings.gradle 과 같은 이유로 구글 Maven Central 미러를 먼저 쓴다 (Render 빌드에서 429 회피)
+	maven { url = 'https://maven-central.storage-download.googleapis.com/maven2/' }
 	mavenCentral()
 }
 
