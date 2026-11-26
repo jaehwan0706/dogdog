@@ -3,6 +3,7 @@ import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { DogEditScreen } from '../screens/profile/DogEditScreen';
 import { MyPostsScreen } from '../screens/profile/MyPostsScreen';
 import { BlockedUsersScreen } from '../screens/profile/BlockedUsersScreen';
+import { NicknameEditScreen } from '../screens/profile/NicknameEditScreen';
 import { AdminHomeScreen } from '../screens/admin/AdminHomeScreen';
 import { AdminReportsScreen } from '../screens/admin/AdminReportsScreen';
 import { AdminUsersScreen } from '../screens/admin/AdminUsersScreen';
@@ -16,6 +17,7 @@ export type ProfileStackParamList = {
   DogEdit: { dogId?: number }; // 없으면 새로 추가
   MyPosts: undefined;
   BlockedUsers: undefined;
+  NicknameEdit: undefined;
   AdminHome: undefined;
   AdminReports: undefined;
   AdminUsers: undefined;
@@ -35,6 +37,7 @@ export function ProfileNavigator() {
       <Stack.Screen name="DogEdit" component={DogEditScreen} />
       <Stack.Screen name="MyPosts" component={MyPostsScreen} />
       <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
+      <Stack.Screen name="NicknameEdit" component={NicknameEditScreen} />
       <Stack.Screen name="AdminHome" component={AdminHomeScreen} />
       <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
       <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
