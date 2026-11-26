@@ -116,7 +116,7 @@ public class WalkService {
         for (WalkPointRequest p : sorted) {
             if (room <= 0) break;
             if (p.seq() <= saved) continue;
-            walkPointRepository.save(new WalkPoint(walkId, p.seq(), p.latitude(), p.longitude()));
+            walkPointRepository.save(new WalkPoint(walkId, p.seq(), p.latitude(), p.longitude(), p.recordedAtMs()));
             saved = p.seq();
             room--;
         }

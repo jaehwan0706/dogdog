@@ -14,6 +14,17 @@ export const MY_LOCATION_COLOR = '#2F80ED';
 
 // 산책 경로선 (앱·웹 공통)
 export const ROUTE_STYLE = { strokeColor: '#E9903A', strokeWeight: 6, strokeOpacity: 0.9, strokeLineCap: 'round', strokeLineJoin: 'round' };
+export const ROUTE_SPEED_OUTLINE = { ...ROUTE_STYLE, strokeColor: '#344432', strokeWeight: 11 };
+export const ROUTE_ENDPOINTS = [
+  { label: '출발', color: '#22844F', size: 24 },
+  { label: '도착', color: '#C93533', size: 14 },
+];
+
+// 겹치는 출발·도착점에서도 바깥쪽 출발점과 안쪽 도착점이 함께 보인다.
+export const ROUTE_ENDPOINT_ICONS = ROUTE_ENDPOINTS.map(({ label, color, size }) => ({
+  anchor: size / 2,
+  content: `<div aria-label="${label}" style="box-sizing:border-box;width:${size}px;height:${size}px;border:2px solid white;border-radius:50%;background:${color};box-shadow:0 1px 4px #0006"></div>`,
+}));
 // 코스 안내선: 산책 경로선 아래 초록 점선 (앱·웹 공통)
 export const GUIDE_STYLE = { strokeColor: '#184D3B', strokeWeight: 7, strokeOpacity: 0.45, strokeStyle: 'shortdash', strokeLineCap: 'round', strokeLineJoin: 'round' };
 // 경로에 화면을 맞출 때 가장자리 여백(px)
@@ -23,10 +34,14 @@ export const ROUTE_FIT_MARGIN = 48;
 export const PHOTO_PIN_SIZE = 44;
 export const PHOTO_PIN_BORDER = '#184D3B';
 export const PHOTO_PIN_ANCHOR = { x: PHOTO_PIN_SIZE / 2 + 3, y: PHOTO_PIN_SIZE + 12 };
+const COMPACT_PHOTO_PIN_SIZE = 28;
+export const COMPACT_PHOTO_PIN_ANCHOR = { x: COMPACT_PHOTO_PIN_SIZE / 2 + 2, y: COMPACT_PHOTO_PIN_SIZE + 9 };
 export const PHOTO_PIN_CSS = `
   .pin { position: relative; width: ${PHOTO_PIN_SIZE}px; height: ${PHOTO_PIN_SIZE}px; border: 3px solid ${PHOTO_PIN_BORDER}; border-radius: 50%; background: #EAF0EC; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); cursor: pointer; }
   .pin img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
   .pin::after { content: ''; position: absolute; left: 50%; bottom: -10px; margin-left: -6px; border: 6px solid transparent; border-top: 6px solid ${PHOTO_PIN_BORDER}; }
+  .pin--compact { width: ${COMPACT_PHOTO_PIN_SIZE}px; height: ${COMPACT_PHOTO_PIN_SIZE}px; border: 2px solid white; box-shadow: 0 0 0 1px ${PHOTO_PIN_BORDER}, 0 2px 5px #184D3B55; }
+  .pin--compact::after { bottom: -9px; margin-left: -5px; border-width: 5px; border-top-color: ${PHOTO_PIN_BORDER}; }
 `;
 
 // 친화시설 마커: 흰 원 + 분류 그림(이모지), 테두리 색은 분류 묶음별. 앵커는 원 가운데 (앱·웹 공통)
@@ -147,19 +162,21 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
 
     // 사진 핀: 목록이 바뀔 때마다 전부 지우고 다시 그림 (개인 기록이라 개수가 많지 않음)
     var photoMarkers = [];
-    function updatePhotoPins(pins) {
+    function updatePhotoPins(pins, compact) {
+      var anchor = compact ? ${JSON.stringify(COMPACT_PHOTO_PIN_ANCHOR)} : ${JSON.stringify(PHOTO_PIN_ANCHOR)};
       photoMarkers.forEach(function (marker) { marker.setMap(null); });
       photoMarkers = pins.map(function (pin) {
         // 이미지 주소는 문자열로 HTML 에 끼워 넣지 않고 DOM 으로 만들어서 넣음
         var element = document.createElement('div');
-        element.className = 'pin';
+        element.className = compact ? 'pin pin--compact' : 'pin';
         var image = document.createElement('img');
         image.src = pin.imageUrl;
         element.appendChild(image);
         var marker = new naver.maps.Marker({
           map: map,
           position: new naver.maps.LatLng(pin.latitude, pin.longitude),
-          icon: { content: element, anchor: new naver.maps.Point(${PHOTO_PIN_ANCHOR.x}, ${PHOTO_PIN_ANCHOR.y}) },
+          title: '산책 사진',
+          icon: { content: element, anchor: new naver.maps.Point(anchor.x, anchor.y) },
           zIndex: 50,
         });
         naver.maps.Event.addListener(marker, 'click', function () {
@@ -195,14 +212,36 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
 
     // 산책 경로: path 는 [[위도, 경도], ...]
     var routeLine = null;
+    var routeResultOverlays = [];
     function updateRoute(message) {
       var path = message.path.map(function (p) { return new naver.maps.LatLng(p[0], p[1]); });
+      var speedSegments = message.speedSegments;
+      var style = speedSegments.length ? ${JSON.stringify(ROUTE_SPEED_OUTLINE)} : ${JSON.stringify(ROUTE_STYLE)};
       if (!routeLine) {
-        routeLine = new naver.maps.Polyline(Object.assign({ map: map, path: path, clickable: false, zIndex: 10 }, ${JSON.stringify(ROUTE_STYLE)}));
+        routeLine = new naver.maps.Polyline(Object.assign({ map: map, path: path, clickable: false, zIndex: 10 }, style));
       } else {
         routeLine.setPath(path);
+        routeLine.setOptions(style);
       }
-      if (message.fit && path.length > 0) {
+      routeResultOverlays.forEach(function (overlay) { overlay.setMap(null); });
+      routeResultOverlays = [];
+      if (message.showEndpoints && path.length > 1) {
+        routeResultOverlays = speedSegments.map(function (segment) {
+          return new naver.maps.Polyline(Object.assign({}, ${JSON.stringify(ROUTE_STYLE)}, {
+            map: map, path: path.slice(segment.start, segment.end), strokeColor: segment.color,
+            strokeWeight: 7, strokeOpacity: 1, clickable: false, zIndex: 11,
+          }));
+        });
+        var icons = ${JSON.stringify(ROUTE_ENDPOINT_ICONS)};
+        [path[0], path[path.length - 1]].forEach(function (position, index) {
+          var icon = icons[index];
+          routeResultOverlays.push(new naver.maps.Marker({
+            map: map, position: position, clickable: false, zIndex: 40 + index,
+            icon: { content: icon.content, anchor: new naver.maps.Point(icon.anchor, icon.anchor) },
+          }));
+        });
+      }
+      if (message.fit && path.length > 1) {
         var m = ${ROUTE_FIT_MARGIN};
         map.fitBounds(routeLine.getBounds(), { top: m, right: m, bottom: m, left: m });
       }
@@ -227,7 +266,7 @@ export function buildNaverMapHtml(clientId: string, camera: MapCamera) {
       if (message.type === 'location') {
         updateMyLocation(message);
       } else if (message.type === 'photoPins') {
-        updatePhotoPins(message.pins);
+        updatePhotoPins(message.pins, message.compact);
       } else if (message.type === 'route') {
         updateRoute(message);
       } else if (message.type === 'guide') {

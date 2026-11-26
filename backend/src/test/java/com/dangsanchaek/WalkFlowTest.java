@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -59,7 +60,9 @@ class WalkFlowTest {
                 .andExpect(jsonPath("$.code").value("WALK_ALREADY_IN_PROGRESS"));
 
         // 위도 0.001도 ≈ 111m. 같은 묶음 재전송·순서 뒤섞임은 한 번만 저장된다
-        String batch1 = points(point(0, 37.5000), point(1, 37.5010));
+        String batch1 = points(
+                "{\"seq\":0,\"latitude\":37.5000,\"longitude\":127.0,\"recordedAtMs\":1790000000000}",
+                point(1, 37.5010));
         json(post("/walks/" + walkId + "/points"), user, batch1).andExpect(status().isOk())
                 .andExpect(jsonPath("$.lastSeq").value(1));
         json(post("/walks/" + walkId + "/points"), user, batch1).andExpect(jsonPath("$.lastSeq").value(1));
@@ -95,7 +98,10 @@ class WalkFlowTest {
         call(get("/users/me/walks?from=" + yesterday + "&to=" + yesterday), user).andExpect(jsonPath("$", hasSize(0)));
         call(get("/users/me/walks?from=" + today + "&to=" + yesterday), user).andExpect(status().isBadRequest());
 
-        call(get("/walks/" + walkId), user).andExpect(status().isOk()).andExpect(jsonPath("$.points", hasSize(5)));
+        call(get("/walks/" + walkId), user).andExpect(status().isOk())
+                .andExpect(jsonPath("$.points", hasSize(5)))
+                .andExpect(jsonPath("$.points[0].recordedAtMs").value(1790000000000L))
+                .andExpect(jsonPath("$.points[1].recordedAtMs").value(nullValue()));
 
         // 다음 산책은 새로 시작할 수 있다
         call(post("/walks/start"), user).andExpect(status().isCreated()).andExpect(jsonPath("$.dogId").doesNotExist());

@@ -8,6 +8,7 @@ import {
   type NaverWebMapProps,
 } from './naverMapCommon';
 import {
+  COMPACT_PHOTO_PIN_ANCHOR,
   FACILITY_MARKER_ANCHOR,
   FACILITY_MARKER_CSS,
   FACILITY_MARKER_STYLE,
@@ -15,7 +16,9 @@ import {
   PHOTO_PIN_ANCHOR,
   PHOTO_PIN_CSS,
   GUIDE_STYLE,
+  ROUTE_ENDPOINT_ICONS,
   ROUTE_FIT_MARGIN,
+  ROUTE_SPEED_OUTLINE,
   ROUTE_STYLE,
   naverMapScriptUrl,
 } from './naverMapHtml';
@@ -68,7 +71,7 @@ function loadNaverMaps(clientId: string): Promise<void> {
   return scriptPromise;
 }
 
-export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, onPhotoPinPress, route, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
+export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, photoPins, compactPhotoPins, onPhotoPinPress, route, showRouteEndpoints, routeSpeedSegments, fitRoute = false, guide, facilities, onFacilityPress, onCameraIdle, moveTo, style }: NaverWebMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<NaverMaps>(null);
   const myMarkerRef = useRef<NaverMaps>(null);
@@ -203,22 +206,24 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       return;
     }
     photoMarkersRef.current.forEach((marker) => marker.setMap(null));
+    const anchor = compactPhotoPins ? COMPACT_PHOTO_PIN_ANCHOR : PHOTO_PIN_ANCHOR;
     photoMarkersRef.current = (photoPins ?? []).map((pin) => {
       const element = document.createElement('div');
-      element.className = 'pin';
+      element.className = compactPhotoPins ? 'pin pin--compact' : 'pin';
       const image = document.createElement('img');
       image.src = pin.imageUrl;
       element.appendChild(image);
       const marker = new maps.Marker({
         map,
         position: new maps.LatLng(pin.latitude, pin.longitude),
-        icon: { content: element, anchor: new maps.Point(PHOTO_PIN_ANCHOR.x, PHOTO_PIN_ANCHOR.y) },
+        title: '산책 사진',
+        icon: { content: element, anchor: new maps.Point(anchor.x, anchor.y) },
         zIndex: 50,
       });
       maps.Event.addListener(marker, 'click', () => onPhotoPinPressRef.current?.(pin.id));
       return marker;
     });
-  }, [isReady, photoPins]);
+  }, [isReady, photoPins, compactPhotoPins]);
 
   // 친화시설 마커: 목록이 바뀔 때마다 전부 지우고 다시 그림
   useEffect(() => {
@@ -263,16 +268,33 @@ export function NaverWebMap({ initialCamera, myLocation, follow, onUserGesture, 
       return;
     }
     const path = route.map((p) => new maps.LatLng(p.latitude, p.longitude));
+    const lineStyle = routeSpeedSegments?.length ? ROUTE_SPEED_OUTLINE : ROUTE_STYLE;
     if (!routeLineRef.current) {
-      routeLineRef.current = new maps.Polyline({ map, path, clickable: false, zIndex: 10, ...ROUTE_STYLE });
+      routeLineRef.current = new maps.Polyline({ map, path, clickable: false, zIndex: 10, ...lineStyle });
     } else {
       routeLineRef.current.setPath(path);
+      routeLineRef.current.setOptions(lineStyle);
     }
-    if (fitRoute && path.length > 0) {
+    if (fitRoute && path.length > 1) {
       const m = ROUTE_FIT_MARGIN;
       map.fitBounds(routeLineRef.current.getBounds(), { top: m, right: m, bottom: m, left: m });
     }
-  }, [isReady, route, fitRoute]);
+    if (!showRouteEndpoints || path.length < 2) {
+      return;
+    }
+    const lines = (routeSpeedSegments ?? []).map(({ start, end, color }) => new maps.Polyline({
+      ...ROUTE_STYLE, map, path: path.slice(start, end), strokeColor: color,
+      strokeWeight: 7, strokeOpacity: 1, clickable: false, zIndex: 11,
+    }));
+    const endpoints = [path[0], path[path.length - 1]].map((position, index) => {
+      const { content, anchor } = ROUTE_ENDPOINT_ICONS[index];
+      return new maps.Marker({
+        map, position, clickable: false, zIndex: 40 + index,
+        icon: { content, anchor: new maps.Point(anchor, anchor) },
+      });
+    });
+    return () => [...lines, ...endpoints].forEach((overlay) => overlay.setMap(null));
+  }, [isReady, route, fitRoute, showRouteEndpoints, routeSpeedSegments]);
 
   // 코스 안내선
   useEffect(() => {

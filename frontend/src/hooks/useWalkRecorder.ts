@@ -95,7 +95,12 @@ export function useWalkRecorder({ enabled, location, dogId }: { enabled: boolean
         if (seconds > 0 && step / seconds > MAX_SPEED_METERS_PER_SECOND) return;
       }
     }
-    const point: WalkPoint = { seq: nextSeq.current++, latitude: location.latitude, longitude: location.longitude };
+    const point: WalkPoint = {
+      seq: nextSeq.current++,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      recordedAtMs: Math.round(location.timestamp),
+    };
     lastPoint.current = point;
     lastPointTime.current = location.timestamp;
     pending.current.push(point);
