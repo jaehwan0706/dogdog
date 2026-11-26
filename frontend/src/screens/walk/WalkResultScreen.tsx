@@ -9,6 +9,7 @@ import { NaverWebMap } from '../../components/map/NaverWebMap';
 import { ROUTE_ENDPOINTS } from '../../components/map/naverMapHtml';
 import { PhotoPinDetailSheet } from '../../components/map/PhotoPinSheets';
 import { useAsyncData } from '../../hooks/useAsyncData';
+import { useStartCamera } from '../../hooks/useStartCamera';
 import type { RootScreenProps } from '../../navigation/RootNavigator';
 import { colors, radius, spacing, typography } from '../../theme';
 import type { PhotoPin } from '../../types/photoPin';
@@ -70,6 +71,8 @@ export function WalkResultScreen({ navigation, route }: RootScreenProps<'WalkRes
 
   const data = walk.data;
   const speedSegments = useMemo(() => data ? walkRouteSpeedSegments(data.points) : [], [data]);
+  // 경로·사진이 없는 짧은 산책이면 지난번 내 위치에서 보여준다 (없으면 서울시청)
+  const startCamera = useStartCamera(16);
   const firstPhoto = pins.data?.[0];
   const photoCamera = useMemo(() => firstPhoto && (data?.points.length ?? 0) < 2
     ? { latitude: firstPhoto.latitude, longitude: firstPhoto.longitude, zoom: 16 }
@@ -139,9 +142,10 @@ export function WalkResultScreen({ navigation, route }: RootScreenProps<'WalkRes
             )}
           </View>
           <View style={[styles.mapFrame, { height: Math.max(260, Math.min(width - spacing.xl * 2, 420)) }]}>
-            <NaverWebMap
+            {/* 지도는 처음 만들 때만 시작 위치를 읽으므로, 경로·사진이 없으면 지난번 위치를 읽은 뒤에 만든다 */}
+            {(photoCamera || first || startCamera) && <NaverWebMap
               style={styles.map}
-              initialCamera={photoCamera ?? (first ? { latitude: first.latitude, longitude: first.longitude, zoom: 16 } : { latitude: 37.5666, longitude: 126.9784, zoom: 15 })}
+              initialCamera={photoCamera ?? (first ? { latitude: first.latitude, longitude: first.longitude, zoom: 16 } : startCamera!)}
               myLocation={null}
               follow={false}
               moveTo={photoCamera}
@@ -152,7 +156,7 @@ export function WalkResultScreen({ navigation, route }: RootScreenProps<'WalkRes
               photoPins={pins.data ?? undefined}
               compactPhotoPins
               onPhotoPinPress={(pinId) => setSelectedPin(pins.data?.find((pin) => pin.id === pinId) ?? null)}
-            />
+            />}
           </View>
           {speedSegments.length > 0 && (
             <View style={styles.speedLegend}>
