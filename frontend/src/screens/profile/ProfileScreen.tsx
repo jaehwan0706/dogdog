@@ -10,6 +10,7 @@ import { LoadState } from '../../components/shop/ShopParts';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import type { ProfileScreenProps } from '../../navigation/ProfileNavigator';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { useAuthSession } from '../../store/authStore';
 import { useDogs } from '../../store/dogStore';
 import { colors, radius, spacing, typography } from '../../theme';
 import { confirmAction, notify } from '../../utils/dialog';
@@ -21,6 +22,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'ProfileHome'>)
   // 산책 기록 화면은 탭 밖(최상위 스택)에 있어서 그쪽 navigation 으로 이동
   const rootNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const me = useAsyncData(() => userService.getMe(), []);
+  const session = useAuthSession();
   const { dogs } = useDogs();
 
   const withdraw = () =>
@@ -39,9 +41,13 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'ProfileHome'>)
           <View style={styles.userRow}>
             <View style={styles.userAvatar}><MaterialCommunityIcons name="account" size={28} color={colors.forest} /></View>
             <View style={styles.flex}>
-              <Text style={styles.userName}>{me.data.nickname}</Text>
+              {/* 닉네임을 바꾸면 세션이 바로 바뀌므로 세션 값을 먼저 보여준다 */}
+              <Text style={styles.userName}>{session?.user.nickname ?? me.data.nickname}</Text>
               <Text style={styles.meta}>{me.data.email} · {providerLabel[me.data.provider]} 로그인</Text>
             </View>
+            <Pressable accessibilityLabel="닉네임 변경" accessibilityRole="button" hitSlop={10} onPress={() => navigation.navigate('NicknameEdit')}>
+              <MaterialCommunityIcons name="pencil-outline" size={21} color={colors.forest} />
+            </Pressable>
           </View>
         ) : (
           <LoadState loading={me.loading} error={me.error} onRetry={me.reload} />

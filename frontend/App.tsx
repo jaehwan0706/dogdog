@@ -7,6 +7,7 @@ import { authService } from './src/api/auth/authService';
 import { AppButton } from './src/components/AppButton';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { LoginScreen } from './src/screens/auth/LoginScreen';
+import { NicknameSetupScreen } from './src/screens/auth/NicknameSetupScreen';
 import { DogOnboardingScreen } from './src/screens/dog/DogOnboardingScreen';
 import { useAuthSession } from './src/store/authStore';
 import { dogStore, useDogs } from './src/store/dogStore';
@@ -28,7 +29,14 @@ export default function App() {
   // SafeAreaView 는 이 Provider 안에서만 동작 (웹은 없으면 "No safe area value available" 오류)
   return (
     <SafeAreaProvider>
-      {restoring ? <View style={styles.center}><ActivityIndicator color={colors.forest} /></View> : session ? <SignedInApp key={session.user.id} /> : <LoginScreen />}
+      {restoring
+        ? <View style={styles.center}><ActivityIndicator color={colors.forest} /></View>
+        : !session
+          ? <LoginScreen />
+          // 카카오·구글로 처음 가입했으면 반려견 등록 전에 닉네임부터 정한다
+          : session.needsNickname
+            ? <NicknameSetupScreen />
+            : <SignedInApp key={session.user.id} />}
       <StatusBar style="dark" />
     </SafeAreaProvider>
   );
