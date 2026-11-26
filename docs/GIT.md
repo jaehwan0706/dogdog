@@ -10,7 +10,7 @@ develop   ── 개발 통합. 기능 브랜치의 PR 대상 (기능 PR 을 mai
   ├─ feat/#12-kakao-login
   ├─ fix/#15-walk-time
   └─ docs/#20-api-guide          (refactor / chore / design / test / perf / ci 동일)
-hotfix/#34-xxx  ── main 에서 분기 → main 머지 후 develop 에도 반영
+급한 수정도 fix/#번호-설명 으로 develop 에 올린 뒤 바로 승격한다 (main 에서 브랜치를 따지 않는다)
 ```
 
 | 타입 | 언제 |
@@ -86,10 +86,29 @@ hotfix/#34-xxx  ── main 에서 분기 → main 머지 후 develop 에도 반
    - 제목: `feat: 카카오 로그인 연동` (`<타입>: <요약>`)
    - 본문: 템플릿대로, 맨 위에 `close #12` (머지되면 이슈가 자동으로 닫힌다)
    - UI 를 바꿨다면 캡처를 붙인다.
-5. **CI·리뷰** — 아래 검사가 모두 초록불이고, 팀원 1명 이상 승인하면 머지한다. 실패하면 고쳐서 다시 push.
-6. **머지** — **Squash and merge**. 머지 후 브랜치는 삭제한다.
-7. **배포** — 기능이 모인 develop 을 main 으로 승격하는 PR(develop → main)을 머지하면
-   Render 서버와 Vercel 웹이 함께 자동 배포된다 (승격 PR 은 이슈 연결 검사 제외).
+5. **CI** — 아래 검사가 모두 초록불이면 머지할 수 있다. 실패하면 고쳐서 다시 push.
+6. **머지** — **Squash and merge**. 머지 후 브랜치는 자동으로 삭제된다.
+7. **배포** — 아래 "배포(승격)" 순서로 develop 을 main 에 올리면 Render 서버와 Vercel 웹이 함께 자동 배포된다.
+
+## 배포 (develop → main 승격) — 레포 관리자만
+
+develop 은 기본 브랜치라서 "Compare & pull request" 배너가 뜨지 않는다. 승격 PR 은 직접 만든다.
+
+1. 레포 위 메뉴 **Pull requests** → 오른쪽 위 초록색 **New pull request**
+2. 브랜치 칸 두 개를 고른다: 왼쪽 **base: `main`** (받는 쪽), 오른쪽 **compare: `develop`** (보내는 쪽)
+   → `base: main ← compare: develop` 인지 꼭 확인 (반대면 안 된다)
+3. **Create pull request** → 제목 `<타입>: <요약>` (예: `feat: 산책 중 지도에 친화시설 표시 배포`),
+   본문에 이번에 나가는 PR 목록 (예: `- #9 산책 중 지도에 친화시설 표시`). 승격 PR 은 `close #` 가 없어도 된다
+4. 검사가 모두 초록불이면 머지 버튼 옆 **▾ → Create a merge commit → Bypass requirements → Confirm**
+   (main 은 Squash 가 아니라 **Merge commit** 으로 올린다. Squash 하면 develop 과 기록이 어긋난다)
+5. 몇 분 뒤 Render·Vercel 배포 완료. main 화면의 "Contribute" 버튼과 "main had recent pushes" 배너는 **누르지 않는다** (main → develop 방향)
+
+## 하면 안 되는 PR
+
+| PR | 왜 |
+|---|---|
+| **main → develop** | 승격 머지 뒤 GitHub 가 "main had recent pushes · Compare & pull request" 배너를 띄우지만 **무시한다.** main 의 머지 기록 커밋일 뿐 내용 차이가 없고, 머지하면 main 이 자동 삭제될 수 있다. 만들면 CI 가 자동으로 닫는다 |
+| develop 이 아닌 브랜치 → **main** | main 은 **develop 승격 PR 만** 받는다. 기능·버그 수정(급한 것 포함)은 모두 develop 으로 올린 뒤 승격 |
 
 ## 자동 검사 (`.github/workflows`)
 
