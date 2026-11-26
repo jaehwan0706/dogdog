@@ -2,6 +2,7 @@
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { Coordinate } from '../../hooks/useCurrentLocation';
 import { colors, spacing, typography } from '../../theme';
+import type { RouteSpeedSegment } from '../../utils/walkRouteSpeed';
 import type { MapCamera } from './naverMapHtml';
 
 // .env 의 EXPO_PUBLIC_ 값은 빌드 때 JS 번들에 들어감 (웹 지도 키는 원래 공개되는 값이고, 네이버 콘솔의 URL 제한으로 보호)
@@ -25,9 +26,13 @@ export type NaverWebMapProps = {
   onUserGesture?: () => void;
   // 지도에 썸네일로 표시할 사진 핀
   photoPins?: MapPhotoPin[];
+  compactPhotoPins?: boolean;
   onPhotoPinPress?: (pinId: number) => void;
   // 산책 경로선 (좌표 순서대로 이음)
   route?: MapLatLng[];
+  // 완료한 산책의 출발·도착 마커와 구간 속도 색상
+  showRouteEndpoints?: boolean;
+  routeSpeedSegments?: RouteSpeedSegment[];
   // true 면 경로가 바뀔 때 경로 전체가 보이도록 화면을 맞춤 (산책 결과 화면용)
   fitRoute?: boolean;
   // 따라 걸을 코스 안내선 (산책 경로선 아래에 점선으로)
