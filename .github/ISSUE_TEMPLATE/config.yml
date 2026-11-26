@@ -1,0 +1,6 @@
+# 빈 이슈는 만들 수 없게 하고, 템플릿(기능·버그·디자인·작업) 중 하나를 고르게 한다
+blank_issues_enabled: false
+contact_links:
+  - name: 이슈 작성 규칙
+    url: https://github.com/jaehwan0706/dogdog/blob/develop/docs/GIT.md#이슈-작성-규칙
+    about: 제목 형식, 크기, 라벨, 완료 기준 쓰는 법

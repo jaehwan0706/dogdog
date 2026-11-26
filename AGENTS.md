@@ -24,6 +24,7 @@
 - UI 원칙과 디자인 토큰: `docs/UI_DESIGN.md`
 - 화면·이동 구조: `docs/SCREENS.md`
 - API 연결 규칙: `docs/API.md`
+- Git 작업 규칙(이슈 → 브랜치 → PR): `docs/GIT.md`
 
 ## 권장 프론트엔드 작업 순서
 
