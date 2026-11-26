@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { FACILITY_MAX_SPAN, facilityService } from '../../api/facility/facilityService';
+import { facilityService } from '../../api/facility/facilityService';
 import { photoPinService } from '../../api/map/photoPinService';
 import { AppButton } from '../../components/AppButton';
 import { AppCard } from '../../components/AppCard';
@@ -13,6 +13,7 @@ import type { MapMoveTo, MapViewport } from '../../components/map/naverMapCommon
 import { PhotoPinCreateSheet, PhotoPinDetailSheet } from '../../components/map/PhotoPinSheets';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { useCurrentLocation } from '../../hooks/useCurrentLocation';
+import { FACILITY_NOTICE_TEXT, useFacilitiesInView } from '../../hooks/useFacilitiesInView';
 import { useLocationPermission } from '../../hooks/useLocationPermission';
 import { useMainDog } from '../../store/dogStore';
 import { colors, radius, spacing, typography } from '../../theme';
@@ -26,13 +27,6 @@ import { pickPhoto, type PhotoSource } from '../../utils/pickPhoto';
 const DEFAULT_CAMERA = { latitude: 37.5666, longitude: 126.9784, zoom: 15 };
 
 type MapFilter = 'all' | 'photo' | 'facility';
-
-// 이보다 멀리서 보면(축소) 시설이 너무 많아 조회하지 않고 "확대해 주세요" 안내
-const MIN_FACILITY_ZOOM = 13;
-// 지도를 움직이는 동안 매번 조회하지 않도록, 멈춘 뒤 이만큼 기다렸다가 조회
-const FACILITY_FETCH_DELAY_MS = 300;
-
-type FacilityNotice = 'zoomIn' | 'truncated' | 'error' | null;
 
 export function MapScreen() {
   const withDog = withJosa(useMainDog()?.name ?? '우리 아이', '과', '와');
@@ -59,45 +53,13 @@ export function MapScreen() {
   // 친화시설: 지도가 멈출 때마다 보이는 범위 안의 시설을 불러옴
   const [viewport, setViewport] = useState<MapViewport | null>(null);
   const [group, setGroup] = useState<FacilityGroup | undefined>(undefined);
-  const [facilities, setFacilities] = useState<FacilitySummary[]>([]);
-  const [facilityLoading, setFacilityLoading] = useState(false);
-  const [facilityNotice, setFacilityNotice] = useState<FacilityNotice>(null);
   const [selectedFacilityId, setSelectedFacilityId] = useState<number | null>(null);
   const [moveTo, setMoveTo] = useState<MapMoveTo | null>(null);
-  const facilityRequestId = useRef(0);
-
-  useEffect(() => {
-    const id = ++facilityRequestId.current;
-    if (!showFacilities || !viewport) {
-      setFacilities([]);
-      setFacilityNotice(null);
-      setFacilityLoading(false);
-      return;
-    }
-    const { zoom, ...bounds } = viewport;
-    if (zoom < MIN_FACILITY_ZOOM || bounds.neLat - bounds.swLat > FACILITY_MAX_SPAN || bounds.neLng - bounds.swLng > FACILITY_MAX_SPAN) {
-      setFacilities([]);
-      setFacilityNotice('zoomIn');
-      setFacilityLoading(false);
-      return;
-    }
-    const categories = FACILITY_GROUPS.find((item) => item.value === group)?.categories;
-    const timer = setTimeout(async () => {
-      setFacilityLoading(true);
-      try {
-        const result = await facilityService.getInBounds(bounds, categories);
-        // 그 사이 지도를 또 움직였으면 이 응답은 버림
-        if (id !== facilityRequestId.current) return;
-        setFacilities(result.facilities);
-        setFacilityNotice(result.truncated ? 'truncated' : null);
-      } catch {
-        if (id === facilityRequestId.current) setFacilityNotice('error');
-      } finally {
-        if (id === facilityRequestId.current) setFacilityLoading(false);
-      }
-    }, FACILITY_FETCH_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [showFacilities, viewport, group]);
+  const { facilities, loading: facilityLoading, notice: facilityNotice } = useFacilitiesInView({
+    enabled: showFacilities,
+    viewport,
+    categories: FACILITY_GROUPS.find((item) => item.value === group)?.categories,
+  });
 
   // 시설 이름 검색 (지도 가운데에서 가까운 순)
   const [query, setQuery] = useState('');
@@ -347,12 +309,6 @@ export function MapScreen() {
     </Screen>
   );
 }
-
-const FACILITY_NOTICE_TEXT: Record<Exclude<FacilityNotice, null>, string> = {
-  zoomIn: '지도를 확대하면 친화시설이 보여요',
-  truncated: '가까운 시설만 보여요 · 확대하면 더 보여요',
-  error: '친화시설을 불러오지 못했어요',
-};
 
 function GroupChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (

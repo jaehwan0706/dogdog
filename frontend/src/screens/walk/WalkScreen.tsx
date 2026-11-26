@@ -7,9 +7,12 @@ import { photoPinService } from '../../api/map/photoPinService';
 import { AppButton } from '../../components/AppButton';
 import { AppCard } from '../../components/AppCard';
 import { Screen } from '../../components/Screen';
+import { FacilityDetailSheet } from '../../components/map/FacilitySheets';
 import { NaverWebMap } from '../../components/map/NaverWebMap';
+import type { MapViewport } from '../../components/map/naverMapCommon';
 import { PhotoPinCreateSheet } from '../../components/map/PhotoPinSheets';
 import { useCurrentLocation } from '../../hooks/useCurrentLocation';
+import { FACILITY_NOTICE_TEXT, useFacilitiesInView } from '../../hooks/useFacilitiesInView';
 import { useLocationPermission } from '../../hooks/useLocationPermission';
 import { useWalkRecorder } from '../../hooks/useWalkRecorder';
 import type { RootScreenProps } from '../../navigation/RootNavigator';
@@ -26,6 +29,10 @@ const DEFAULT_CAMERA = { latitude: 37.5666, longitude: 126.9784, zoom: 16 };
 const KEEP_AWAKE_TAG = 'walk-recording';
 // 안내선을 닫을 때 지도에서 지우려고 빈 배열을 보냄 (매번 새 배열이면 다시 그리므로 상수)
 const EMPTY_GUIDE: { latitude: number; longitude: number }[] = [];
+// 산책 중에는 지도가 내 위치를 따라 계속 움직이므로, 이만큼 이동했을 때만 친화시설을 다시 조회
+const FACILITY_REFETCH_METERS = 200;
+// 보이는 범위보다 한 변마다 절반씩 넓게 조회해서, 다시 조회하기 전까지 가장자리 시설이 비지 않게
+const FACILITY_PADDING = 0.5;
 
 // 산책 중 화면: 실시간 경로·거리·시간, 사진 핀 남기기, 종료/취소.
 // Expo Go 는 앱이 화면에 떠 있을 때만 위치를 받을 수 있어 산책 중에는 앱을 켜 두어야 한다
@@ -38,6 +45,17 @@ export function WalkScreen({ navigation, route }: RootScreenProps<'Walk'>) {
   const location = useCurrentLocation(hasLocation);
   const recorder = useWalkRecorder({ enabled: hasLocation, location, dogId: dog?.id });
   const [follow, setFollow] = useState(true);
+
+  // 주변 친화시설: 경로가 가려지지 않게 기본은 끄고, 버튼으로 켤 때만 조회·표시
+  const [showFacilities, setShowFacilities] = useState(false);
+  const [viewport, setViewport] = useState<MapViewport | null>(null);
+  const [selectedFacilityId, setSelectedFacilityId] = useState<number | null>(null);
+  const facilityView = useFacilitiesInView({
+    enabled: showFacilities,
+    viewport,
+    refetchDistanceMeters: FACILITY_REFETCH_METERS,
+    padding: FACILITY_PADDING,
+  });
 
   // 이번 산책 중 남긴 사진 핀 (이어하기면 이미 남긴 것도 불러옴)
   const [walkPins, setWalkPins] = useState<PhotoPin[]>([]);
@@ -174,6 +192,9 @@ export function WalkScreen({ navigation, route }: RootScreenProps<'Walk'>) {
           route={recorder.route}
           guide={guide?.path ?? EMPTY_GUIDE}
           photoPins={walkPins}
+          facilities={facilityView.facilities}
+          onFacilityPress={setSelectedFacilityId}
+          onCameraIdle={setViewport}
         />
         {guide && (
           <View style={styles.guideBanner}>
@@ -193,6 +214,23 @@ export function WalkScreen({ navigation, route }: RootScreenProps<'Walk'>) {
           <Pressable style={styles.locationButton} onPress={() => setFollow(true)} accessibilityRole="button" accessibilityLabel="내 위치로 이동">
             <MaterialCommunityIcons name={follow ? 'crosshairs-gps' : 'crosshairs'} size={22} color={follow ? colors.forest : colors.inkSoft} />
           </Pressable>
+        )}
+        <Pressable
+          style={[styles.facilityButton, showFacilities && styles.facilityButtonActive]}
+          onPress={() => setShowFacilities((current) => !current)}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: showFacilities }}
+          accessibilityLabel="주변 친화시설 보기"
+        >
+          <MaterialCommunityIcons name="storefront-outline" size={22} color={showFacilities ? colors.white : colors.inkSoft} />
+        </Pressable>
+        {showFacilities && (facilityView.loading || facilityView.notice) && (
+          <View style={styles.facilityNotice} pointerEvents="none">
+            {facilityView.loading ? <ActivityIndicator size="small" color={colors.forest} /> : null}
+            <Text style={styles.facilityNoticeText}>
+              {facilityView.loading ? '친화시설을 불러오는 중' : FACILITY_NOTICE_TEXT[facilityView.notice!]}
+            </Text>
+          </View>
         )}
         {recorder.phase === 'recording' && (
           <Pressable style={styles.photoButton} onPress={startPhotoPin} accessibilityRole="button" accessibilityLabel="사진 핀 남기기">
@@ -237,6 +275,7 @@ export function WalkScreen({ navigation, route }: RootScreenProps<'Walk'>) {
       )}
 
       <PhotoPinCreateSheet photo={draft?.photo ?? null} saving={savingPin} onCancel={() => setDraft(null)} onSave={savePhotoPin} />
+      <FacilityDetailSheet facilityId={selectedFacilityId} onClose={() => setSelectedFacilityId(null)} />
     </Screen>
   );
 }
@@ -269,6 +308,10 @@ const styles = StyleSheet.create({
   mapCard: { flex: 1, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.line },
   map: { flex: 1 },
   locationButton: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: 99, borderWidth: 1, height: 42, justifyContent: 'center', position: 'absolute', right: spacing.md, top: spacing.md, width: 42 },
+  facilityButton: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: 99, borderWidth: 1, height: 42, justifyContent: 'center', position: 'absolute', right: spacing.md, top: spacing.md + 42 + spacing.sm, width: 42 },
+  facilityButtonActive: { backgroundColor: colors.forest, borderColor: colors.forest },
+  facilityNotice: { alignItems: 'center', alignSelf: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: 99, borderWidth: 1, bottom: spacing.md, flexDirection: 'row', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, position: 'absolute' },
+  facilityNoticeText: { color: colors.inkSoft, ...typography.caption },
   guideBanner: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.line, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, left: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, position: 'absolute', right: spacing.md + 42 + spacing.sm, top: spacing.md },
   guideText: { flex: 1 },
   guideTitle: { ...typography.body, color: colors.ink, fontWeight: '600' },
