@@ -28,7 +28,7 @@
 
 ## 4. 배포 (꽁냥과 같은 방식)
 
-- 서버: Render Blueprint (`render.yaml`, `backend/Dockerfile`) — `develop` 브랜치에 올리면 자동 배포.
+- 서버: Render Blueprint (`render.yaml`, `backend/Dockerfile`) — `main` 브랜치에 머지되면 자동 배포 (웹 Vercel 도 main).
   무료 플랜은 15분 쉬면 잠들어 첫 요청이 느리고, 디스크가 유지되지 않아 업로드 사진이 재배포 때 사라진다.
 - DB: Supabase(PostgreSQL). Render 무료 서버는 IPv6 직접 연결이 안 될 수 있어 Supabase 의 **Session pooler** 주소를 쓴다.
   `DB_URL=jdbc:postgresql://{pooler 호스트}:5432/postgres?sslmode=require`, `DB_USERNAME=postgres.{프로젝트 ref}`

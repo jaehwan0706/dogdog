@@ -1,0 +1,86 @@
+# CI: PR·push 마다 백엔드 테스트, 프론트 타입 검사, 마이그레이션·키 유출 규칙을 검사한다.
+# CI 가 실패한 PR 은 머지하지 않는다.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - name: 테스트 (H2 PostgreSQL 모드, 마이그레이션 V1~ 전부 적용)
+        run: chmod +x gradlew && ./gradlew test --no-daemon
+
+  frontend:
+    name: Frontend type check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: 의존성 설치 (package-lock 그대로)
+        run: npm ci
+      - name: TypeScript 검사
+        run: npx tsc --noEmit
+
+  guard:
+    name: Migration · Secret guard
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: 이미 있는 마이그레이션 파일을 고치지 않았는지
+        # 운영 DB 에 적용된 V 파일을 바꾸면 Flyway 가 서버를 켜지 않는다. 바꿀 게 있으면 새 V 파일을 만든다
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          changed=$(git diff --name-status "origin/$BASE_REF...HEAD" -- backend/src/main/resources/db/migration | grep -E '^(M|D|R)' || true)
+          if [ -n "$changed" ]; then
+            echo "::error::이미 있는 마이그레이션 파일을 수정·삭제했습니다. 새 V{번호}__설명.sql 파일을 추가해 주세요."
+            echo "$changed"
+            exit 1
+          fi
+      - name: 키·비밀번호 파일이 올라가지 않았는지
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          files=$(git diff --name-only "origin/$BASE_REF...HEAD")
+          if echo "$files" | grep -qE '(^|/)application-local\.yml$|(^|/)\.env$|\.p8$|\.jks$|\.keystore$'; then
+            echo "::error::키가 든 파일이 PR 에 들어 있습니다. 커밋에서 빼 주세요."
+            echo "$files" | grep -E '(^|/)application-local\.yml$|(^|/)\.env$|\.p8$|\.jks$|\.keystore$'
+            exit 1
+          fi
+          if git diff "origin/$BASE_REF...HEAD" | grep -E '^\+' | grep -qE 'GOCSPX[-]|-----BEGIN [A-Z ]*PRIVATE KEY-----'; then
+            echo "::error::키처럼 보이는 문자열이 추가됐습니다. 확인해 주세요."
+            exit 1
+          fi

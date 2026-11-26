@@ -4,9 +4,13 @@ FROM eclipse-temurin:21-jdk AS build
 WORKDIR /src
 COPY gradlew settings.gradle build.gradle ./
 COPY gradle gradle
-COPY src src
 # Windows 에서 받은 파일은 줄바꿈이 달라 실행되지 않을 수 있다
-RUN sed -i 's/\r$//' gradlew && sh gradlew bootJar --no-daemon -x test
+RUN sed -i 's/\r$//' gradlew
+# 라이브러리는 소스와 따로 받아 둔다. build.gradle 이 안 바뀌면 이 단계는 캐시를 써서 다시 받지 않는다.
+# Maven Central 이 요청이 몰리면 429(Too Many Requests)로 잠깐 막으므로 실패하면 쉬었다가 3번까지 다시 시도한다
+RUN for i in 1 2 3; do sh gradlew dependencies --no-daemon -q > /dev/null && break; echo "라이브러리 받기 재시도 $i"; sleep 20; done
+COPY src src
+RUN for i in 1 2 3; do sh gradlew bootJar --no-daemon -x test && break; [ "$i" = 3 ] && exit 1; echo "빌드 재시도 $i"; sleep 20; done
 
 FROM eclipse-temurin:21-jre
 COPY --from=build /src/build/libs/*-SNAPSHOT.jar /app.jar
