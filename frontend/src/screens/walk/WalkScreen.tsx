@@ -14,6 +14,7 @@ import { PhotoPinCreateSheet } from '../../components/map/PhotoPinSheets';
 import { useCurrentLocation } from '../../hooks/useCurrentLocation';
 import { FACILITY_NOTICE_TEXT, useFacilitiesInView } from '../../hooks/useFacilitiesInView';
 import { useLocationPermission } from '../../hooks/useLocationPermission';
+import { useStartCamera } from '../../hooks/useStartCamera';
 import { useWalkRecorder } from '../../hooks/useWalkRecorder';
 import type { RootScreenProps } from '../../navigation/RootNavigator';
 import { useMainDog } from '../../store/dogStore';
@@ -24,8 +25,8 @@ import { withJosa } from '../../utils/format';
 import { formatClock, formatDistance } from '../../utils/geo';
 import { pickPhoto, type PhotoSource } from '../../utils/pickPhoto';
 
-// 위치를 받기 전 기본으로 보여줄 좌표 (서울시청)
-const DEFAULT_CAMERA = { latitude: 37.5666, longitude: 126.9784, zoom: 16 };
+// 지도 확대 수준 (시작 위치는 지난번 내 위치, 없으면 서울시청 — useStartCamera)
+const MAP_ZOOM = 16;
 const KEEP_AWAKE_TAG = 'walk-recording';
 // 안내선을 닫을 때 지도에서 지우려고 빈 배열을 보냄 (매번 새 배열이면 다시 그리므로 상수)
 const EMPTY_GUIDE: { latitude: number; longitude: number }[] = [];
@@ -43,6 +44,7 @@ export function WalkScreen({ navigation, route }: RootScreenProps<'Walk'>) {
   const { status, request } = useLocationPermission();
   const hasLocation = status === 'granted';
   const location = useCurrentLocation(hasLocation);
+  const startCamera = useStartCamera(MAP_ZOOM);
   const recorder = useWalkRecorder({ enabled: hasLocation, location, dogId: dog?.id });
   const [follow, setFollow] = useState(true);
 
@@ -183,9 +185,10 @@ export function WalkScreen({ navigation, route }: RootScreenProps<'Walk'>) {
       </View>
 
       <View style={styles.mapCard}>
-        <NaverWebMap
+        {/* 시작 위치(지난번 내 위치)를 읽은 뒤에 지도를 만든다. 지도는 처음 만들 때만 시작 위치를 읽음 */}
+        {startCamera && <NaverWebMap
           style={styles.map}
-          initialCamera={DEFAULT_CAMERA}
+          initialCamera={startCamera}
           myLocation={location}
           follow={follow}
           onUserGesture={() => setFollow(false)}
@@ -195,7 +198,7 @@ export function WalkScreen({ navigation, route }: RootScreenProps<'Walk'>) {
           facilities={facilityView.facilities}
           onFacilityPress={setSelectedFacilityId}
           onCameraIdle={setViewport}
-        />
+        />}
         {guide && (
           <View style={styles.guideBanner}>
             <MaterialCommunityIcons name="map-marker-path" size={18} color={colors.forest} />

@@ -15,6 +15,7 @@ import { useAsyncData } from '../../hooks/useAsyncData';
 import { useCurrentLocation } from '../../hooks/useCurrentLocation';
 import { FACILITY_NOTICE_TEXT, useFacilitiesInView } from '../../hooks/useFacilitiesInView';
 import { useLocationPermission } from '../../hooks/useLocationPermission';
+import { FALLBACK_CENTER, useStartCamera } from '../../hooks/useStartCamera';
 import { useMainDog } from '../../store/dogStore';
 import { colors, radius, spacing, typography } from '../../theme';
 import { FACILITY_GROUPS, type FacilityGroup, type FacilitySummary } from '../../types/facility';
@@ -23,8 +24,8 @@ import { confirmAction, notify } from '../../utils/dialog';
 import { withJosa } from '../../utils/format';
 import { pickPhoto, type PhotoSource } from '../../utils/pickPhoto';
 
-// 위치를 받기 전 기본으로 보여줄 좌표 (서울시청)
-const DEFAULT_CAMERA = { latitude: 37.5666, longitude: 126.9784, zoom: 15 };
+// 지도 확대 수준 (시작 위치는 지난번 내 위치, 없으면 서울시청 — useStartCamera)
+const MAP_ZOOM = 15;
 
 type MapFilter = 'all' | 'photo' | 'facility';
 
@@ -33,6 +34,7 @@ export function MapScreen() {
   const { status, request } = useLocationPermission();
   const hasLocation = status === 'granted';
   const myLocation = useCurrentLocation(hasLocation);
+  const startCamera = useStartCamera(MAP_ZOOM);
   // 처음엔 내 위치를 따라가고, 지도를 직접 끌면 멈춤 → 내 위치 버튼으로 다시 켬
   const [follow, setFollow] = useState(true);
   const [filter, setFilter] = useState<MapFilter>('all');
@@ -72,7 +74,7 @@ export function MapScreen() {
     Keyboard.dismiss();
     const center = viewport
       ? { latitude: (viewport.swLat + viewport.neLat) / 2, longitude: (viewport.swLng + viewport.neLng) / 2 }
-      : myLocation ?? DEFAULT_CAMERA;
+      : myLocation ?? startCamera ?? FALLBACK_CENTER;
     setSearching(true);
     try {
       setSearchResults(await facilityService.search(keyword, center));
@@ -217,9 +219,10 @@ export function MapScreen() {
       )}
 
       <View style={styles.mapCard}>
-        <NaverWebMap
+        {/* 시작 위치(지난번 내 위치)를 읽은 뒤에 지도를 만든다. 지도는 처음 만들 때만 시작 위치를 읽음 */}
+        {startCamera && <NaverWebMap
           style={styles.map}
-          initialCamera={DEFAULT_CAMERA}
+          initialCamera={startCamera}
           myLocation={myLocation}
           follow={follow}
           onUserGesture={() => setFollow(false)}
@@ -229,7 +232,7 @@ export function MapScreen() {
           onFacilityPress={setSelectedFacilityId}
           onCameraIdle={setViewport}
           moveTo={moveTo}
-        />
+        />}
         {showFacilities && (facilityLoading || facilityNotice) && (
           <View style={styles.facilityNotice} pointerEvents="none">
             {facilityLoading ? <ActivityIndicator size="small" color={colors.forest} /> : null}
