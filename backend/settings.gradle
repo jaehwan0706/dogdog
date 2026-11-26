@@ -1,1 +1,11 @@
+// 라이브러리 저장소: 구글이 운영하는 Maven Central 미러를 먼저 쓴다.
+// Render 같은 공용 빌드 서버는 Maven Central(repo.maven.apache.org)에서 429(Too Many Requests)로 자주 막히기 때문.
+// 미러에 없으면 원래 저장소에서 받는다.
+pluginManagement {
+	repositories {
+		maven { url = 'https://maven-central.storage-download.googleapis.com/maven2/' }
+		gradlePluginPortal()
+	}
+}
+
 rootProject.name = 'dangsanchaek-server'
